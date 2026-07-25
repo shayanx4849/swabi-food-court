@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "88137372901",
+    "firebase_url": "https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "bachaokhana",
+    "storage_bucket": "bachaokhana.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:88137372901:android:95a88a31368d7816c7700c",
+        "android_client_info": {
+          "package_name": "com.example.bachaokhana"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZF5zi5CFVhHi-feu_J9EleXl3pYOBaoc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
