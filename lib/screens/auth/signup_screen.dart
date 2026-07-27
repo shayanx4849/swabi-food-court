@@ -26,6 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
   String _role = 'customer';
   String _businessCategory = 'restaurant';
   bool _loading = false;
+  bool _obscurePassword = true;
   String? _error;
 
   Future<void> _signup() async {
@@ -102,43 +103,66 @@ class _SignupScreenState extends State<SignupScreen> {
                 TextFormField(
                   controller: _nameCtrl,
                   decoration: InputDecoration(
-                    labelText: _role == 'business' ? 'Business name' : 'Full name',
+                    labelText:
+                        _role == 'business' ? 'Business name' : 'Full name',
                   ),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (v) =>
-                      (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                  validator: (v) => (v == null || !v.contains('@'))
+                      ? 'Enter a valid email'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordCtrl,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
                   validator: (v) =>
                       (v == null || v.length < 6) ? 'Min 6 characters' : null,
                 ),
                 if (_role == 'business') ...[
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    initialValue: _businessCategory,
+                    value: _businessCategory,
                     decoration: const InputDecoration(labelText: 'Category'),
                     items: const [
-                      DropdownMenuItem(value: 'restaurant', child: Text('Restaurant / Meals')),
+                      DropdownMenuItem(
+                          value: 'restaurant',
+                          child: Text('Restaurant / Meals')),
                       DropdownMenuItem(value: 'bakery', child: Text('Bakery')),
-                      DropdownMenuItem(value: 'mart', child: Text('Mart / Groceries')),
+                      DropdownMenuItem(
+                          value: 'mart', child: Text('Mart / Groceries')),
                     ],
-                    onChanged: (v) => setState(() => _businessCategory = v ?? 'restaurant'),
+                    onChanged: (v) =>
+                        setState(() => _businessCategory = v ?? 'restaurant'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _addressCtrl,
-                    decoration: const InputDecoration(labelText: 'Business address'),
-                    validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                    decoration:
+                        const InputDecoration(labelText: 'Business address'),
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Required' : null,
                   ),
                 ],
                 const SizedBox(height: 20),

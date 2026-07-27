@@ -1,6 +1,6 @@
 class FoodOrder {
   final String id;
-  final String listingId;
+  final String listingId; // empty for menu orders (see menuItemId instead)
   final String businessId;
   final String businessName;
   final String listingTitle;
@@ -8,7 +8,7 @@ class FoodOrder {
   final String customerName;
   final double price;
   final String qrCode; // encodes the order id
-  final String status; // pending, completed, cancelled
+  final String status; // pending, confirmed, completed, cancelled
   final DateTime createdAt;
   final bool reviewed;
 
@@ -19,6 +19,15 @@ class FoodOrder {
   final String orderType;
   final String? deliveryAddress; // only set when orderType == 'delivery'
   final double deliveryFee;
+
+  /// "surplus" (default) — a discounted Surprise Bag from FoodListing — or
+  /// "menu" — a regular, always-available item ordered from a business's
+  /// normal menu (no expiry/pickup-window, no stock limit). Menu orders go
+  /// through an extra "confirmed" status: the business explicitly confirms
+  /// they've started preparing it, distinct from a surplus order's implicit
+  /// pickup-window coordination.
+  final String orderSource;
+  final String? menuItemId; // set when orderSource == 'menu'
 
   FoodOrder({
     required this.id,
@@ -36,9 +45,12 @@ class FoodOrder {
     this.orderType = 'pickup',
     this.deliveryAddress,
     this.deliveryFee = 0,
+    this.orderSource = 'surplus',
+    this.menuItemId,
   });
 
   bool get isDelivery => orderType == 'delivery';
+  bool get isMenuOrder => orderSource == 'menu';
   double get totalPrice => price + deliveryFee;
 
   Map<String, dynamic> toMap() {
@@ -57,6 +69,8 @@ class FoodOrder {
       'orderType': orderType,
       'deliveryAddress': deliveryAddress,
       'deliveryFee': deliveryFee,
+      'orderSource': orderSource,
+      'menuItemId': menuItemId,
     };
   }
 
@@ -77,6 +91,8 @@ class FoodOrder {
       orderType: map['orderType'] ?? 'pickup',
       deliveryAddress: map['deliveryAddress'],
       deliveryFee: (map['deliveryFee'] ?? 0).toDouble(),
+      orderSource: map['orderSource'] ?? 'surplus',
+      menuItemId: map['menuItemId'],
     );
   }
 }

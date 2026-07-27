@@ -6,6 +6,7 @@ import '../models/listing.dart';
 import '../models/order.dart';
 import '../models/review.dart';
 import '../models/notification_item.dart';
+import '../models/menu_item.dart';
 
 /// All app data lives in Firebase Realtime Database instead of Cloud
 /// Firestore, since Realtime Database is fully usable on Firebase's free
@@ -56,8 +57,7 @@ class DatabaseService {
       if (data == null) return <Business>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       return map.entries
-          .map((e) =>
-              Business.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) => Business.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
     }).asBroadcastStream();
   }
@@ -70,11 +70,7 @@ class DatabaseService {
   }
 
   Future<void> setBusinessVerified(String businessId, bool verified) async {
-    await _db
-        .child('businesses')
-        .child(businessId)
-        .child('verified')
-        .set(verified);
+    await _db.child('businesses').child(businessId).child('verified').set(verified);
   }
 
   Future<void> deleteBusiness(String businessId) async {
@@ -93,8 +89,7 @@ class DatabaseService {
       if (data == null) return <FoodListing>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       return map.entries
-          .map((e) =>
-              FoodListing.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) => FoodListing.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           // Customers should never see sold-out, cancelled, OR expired
           // listings — even though "expired" isn't a status stored in the
           // database, isExpired is computed live from pickupEnd.
@@ -174,8 +169,7 @@ class DatabaseService {
       if (data == null) return <FoodListing>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final listings = map.entries
-          .map((e) =>
-              FoodListing.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) => FoodListing.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       listings.sort((a, b) => b.pickupStart.compareTo(a.pickupStart));
       return listings;
@@ -260,7 +254,9 @@ class DatabaseService {
     if (!snap.exists) return;
 
     final data = Map<dynamic, dynamic>.from(snap.value as Map);
-    if (data['status'] != 'pending') return;
+    // Surplus orders complete straight from "pending"; menu orders will
+    // usually have been moved to "confirmed" first via confirmOrder().
+    if (data['status'] != 'pending' && data['status'] != 'confirmed') return;
 
     await ref.child('status').set('completed');
     await _incrementImpactStats();
@@ -268,8 +264,27 @@ class DatabaseService {
     await addNotification(
       uid: data['customerId'],
       title: 'Order delivered',
-      body:
-          'Your "${data['listingTitle']}" from ${data['businessName']} has been delivered!',
+      body: 'Your "${data['listingTitle']}" from ${data['businessName']} has been delivered!',
+    );
+  }
+
+  /// Business explicitly confirms a menu order — e.g. "we've started
+  /// preparing your order". Surplus (Surprise Bag) orders don't use this
+  /// step since the pickup window already coordinates timing implicitly.
+  Future<void> confirmOrder(String orderId) async {
+    final ref = _db.child('orders').child(orderId);
+    final snap = await ref.get();
+    if (!snap.exists) return;
+
+    final data = Map<dynamic, dynamic>.from(snap.value as Map);
+    if (data['status'] != 'pending') return;
+
+    await ref.child('status').set('confirmed');
+
+    await addNotification(
+      uid: data['customerId'],
+      title: 'Order confirmed',
+      body: '${data['businessName']} has started working on your order "${data['listingTitle']}".',
     );
   }
 
@@ -281,7 +296,7 @@ class DatabaseService {
     if (!snap.exists) return false;
 
     final data = Map<dynamic, dynamic>.from(snap.value as Map);
-    if (data['status'] != 'pending') return false;
+    if (data['status'] != 'pending' && data['status'] != 'confirmed') return false;
 
     await ref.child('status').set('completed');
     await _incrementImpactStats();
@@ -289,11 +304,136 @@ class DatabaseService {
     await addNotification(
       uid: data['customerId'],
       title: 'Order picked up',
-      body:
-          'Enjoy your "${data['listingTitle']}" from ${data['businessName']}!',
+      body: 'Enjoy your "${data['listingTitle']}" from ${data['businessName']}!',
     );
 
     return true;
+  }
+
+  // ---------------- MENU ITEMS (regular, always-available items) ----------------
+  //
+  // Distinct from FoodListing: no pickup window, no stock/quantity limit,
+  // no expiry. A business's normal, everyday menu, separate from their
+  // time-limited surplus "Surprise Bag" listings.
+
+  Future<void> createMenuItem(MenuItem item) async {
+    await _db.child('menu_items').child(item.id).set(item.toMap());
+  }
+
+  Future<void> updateMenuItem(MenuItem item) async {
+    await _db.child('menu_items').child(item.id).update(item.toMap());
+  }
+
+  Future<void> deleteMenuItem(String itemId) async {
+    await _db.child('menu_items').child(itemId).remove();
+  }
+
+  Stream<List<MenuItem>> streamBusinessMenuItems(String businessId) {
+    return _db
+        .child('menu_items')
+        .orderByChild('businessId')
+        .equalTo(businessId)
+        .onValue
+        .map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <MenuItem>[];
+      final map = Map<dynamic, dynamic>.from(data as Map);
+      return map.entries
+          .map((e) => MenuItem.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .toList();
+    }).asBroadcastStream();
+  }
+
+  /// All menu items from verified businesses only — same trust-gating
+  /// principle as streamVerifiedActiveListings(), implemented the same way
+  /// (client-side join of two live streams, since Realtime Database has no
+  /// server-side join).
+  Stream<List<MenuItem>> streamVerifiedMenuItems({String? businessId}) {
+    final controller = StreamController<List<MenuItem>>.broadcast();
+    List<MenuItem>? latestItems;
+    Set<String>? verifiedBusinessIds;
+
+    void emitIfReady() {
+      if (latestItems != null && verifiedBusinessIds != null) {
+        controller.add(
+          latestItems!
+              .where((i) => i.available && verifiedBusinessIds!.contains(i.businessId))
+              .toList(),
+        );
+      }
+    }
+
+    controller.onListen = () {
+      final itemsStream = businessId != null
+          ? streamBusinessMenuItems(businessId)
+          : _db.child('menu_items').onValue.map((event) {
+              final data = event.snapshot.value;
+              if (data == null) return <MenuItem>[];
+              final map = Map<dynamic, dynamic>.from(data as Map);
+              return map.entries
+                  .map((e) => MenuItem.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+                  .toList();
+            });
+
+      itemsStream.listen((items) {
+        latestItems = items;
+        emitIfReady();
+      }, onError: controller.addError);
+
+      streamAllBusinesses().listen((businesses) {
+        verifiedBusinessIds =
+            businesses.where((b) => b.verified).map((b) => b.id).toSet();
+        emitIfReady();
+      }, onError: controller.addError);
+    };
+
+    return controller.stream;
+  }
+
+  /// Customer orders a regular menu item. Unlike createOrder() for surplus
+  /// listings, this does NOT touch any stock/quantity field (menu items
+  /// have no limited quantity) and starts at "pending", awaiting the
+  /// business's explicit confirmOrder() before moving to "confirmed".
+  Future<FoodOrder> createMenuOrder({
+    required MenuItem item,
+    required String customerId,
+    required String customerName,
+    String orderType = 'pickup',
+    String? deliveryAddress,
+    double deliveryFee = 0,
+  }) async {
+    final orderId = _uuid.v4();
+    final order = FoodOrder(
+      id: orderId,
+      listingId: '',
+      businessId: item.businessId,
+      businessName: item.businessName,
+      listingTitle: item.name,
+      customerId: customerId,
+      customerName: customerName,
+      price: item.price,
+      qrCode: orderId,
+      status: 'pending',
+      createdAt: DateTime.now(),
+      orderType: orderType,
+      deliveryAddress: orderType == 'delivery' ? deliveryAddress : null,
+      deliveryFee: orderType == 'delivery' ? deliveryFee : 0,
+      orderSource: 'menu',
+      menuItemId: item.id,
+    );
+
+    await _db.child('orders').child(orderId).set(order.toMap());
+
+    final business = await getBusinessById(item.businessId);
+    if (business != null) {
+      await addNotification(
+        uid: business.ownerId,
+        title: 'New menu order',
+        body: '$customerName ordered "${item.name}".',
+      );
+    }
+
+    return order;
   }
 
   Stream<List<FoodOrder>> streamCustomerOrders(String customerId) {
@@ -307,8 +447,7 @@ class DatabaseService {
       if (data == null) return <FoodOrder>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final orders = map.entries
-          .map((e) =>
-              FoodOrder.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) => FoodOrder.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return orders;
@@ -326,8 +465,7 @@ class DatabaseService {
       if (data == null) return <FoodOrder>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final orders = map.entries
-          .map((e) =>
-              FoodOrder.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) => FoodOrder.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return orders;
@@ -383,8 +521,7 @@ class DatabaseService {
       if (data == null) return <Review>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final reviews = map.entries
-          .map(
-              (e) => Review.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) => Review.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return reviews;
@@ -413,11 +550,7 @@ class DatabaseService {
       body: body,
       createdAt: DateTime.now(),
     );
-    await _db
-        .child('notifications')
-        .child(uid)
-        .child(id)
-        .set(notification.toMap());
+    await _db.child('notifications').child(uid).child(id).set(notification.toMap());
   }
 
   Stream<List<NotificationItem>> streamNotifications(String uid) {
@@ -426,8 +559,7 @@ class DatabaseService {
       if (data == null) return <NotificationItem>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final items = map.entries
-          .map((e) => NotificationItem.fromMap(
-              e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) => NotificationItem.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return items;
@@ -455,12 +587,7 @@ class DatabaseService {
 
   /// Emits {mealsRescued, kgCo2Saved} every time the global counter changes.
   Stream<Map<String, num>> streamGlobalImpact() {
-    return _db
-        .child('stats')
-        .child('global')
-        .child('mealsRescued')
-        .onValue
-        .map((event) {
+    return _db.child('stats').child('global').child('mealsRescued').onValue.map((event) {
       final meals = (event.snapshot.value as int?) ?? 0;
       return {
         'mealsRescued': meals,
@@ -468,4 +595,5 @@ class DatabaseService {
       };
     }).asBroadcastStream();
   }
+
 }

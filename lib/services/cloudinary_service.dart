@@ -13,8 +13,9 @@ import 'package:http/http.dart' as http;
 ///   3. Settings -> Upload -> Add upload preset -> set Signing Mode to
 ///      "Unsigned" -> copy its name into [uploadPreset] below.
 class CloudinaryService {
-  static const String cloudName = 'dg9vz83qu';
-  static const String uploadPreset = 'bachaokhana';
+  // TODO: replace with your own values from the Cloudinary dashboard.
+  static const String cloudName = 'YOUR_CLOUD_NAME';
+  static const String uploadPreset = 'YOUR_UNSIGNED_UPLOAD_PRESET';
 
   /// Uploads a single image file and returns its public HTTPS URL,
   /// or null if the upload failed. Prints the exact failure reason to the
@@ -36,8 +37,7 @@ class CloudinaryService {
 
     if (response.statusCode != 200) {
       // ignore: avoid_print
-      print(
-          '[Cloudinary] Upload FAILED — status ${response.statusCode}: $body');
+      print('[Cloudinary] Upload FAILED — status ${response.statusCode}: $body');
       // Common causes visible in the printed body:
       //  - "Invalid cloud_name" -> cloudName is wrong
       //  - "Upload preset not found" -> uploadPreset name is wrong/deleted

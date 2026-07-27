@@ -22,10 +22,11 @@ class BachaoKhanaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Swabi Food Delivery',
+      title: 'Food Deli',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.green,
+        // colorSchemeSeed: Colors.green,
         useMaterial3: false,
       ),
       home: const SplashScreen(),

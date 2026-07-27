@@ -48,13 +48,9 @@ class _ProfileTabState extends State<ProfileTab> {
                   radius: 28,
                   backgroundColor: Colors.green.shade100,
                   child: Text(
-                    (_profile?.name.isNotEmpty == true)
-                        ? _profile!.name[0].toUpperCase()
-                        : '?',
+                    (_profile?.name.isNotEmpty == true) ? _profile!.name[0].toUpperCase() : '?',
                     style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade800),
+                        fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green.shade800),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -64,13 +60,11 @@ class _ProfileTabState extends State<ProfileTab> {
                     children: [
                       Text(
                         _profile?.name ?? '...',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         _profile?.email ?? '',
-                        style: TextStyle(
-                            fontSize: 13, color: Colors.grey.shade600),
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                       ),
                     ],
                   ),
@@ -113,42 +107,6 @@ class _ProfileTabState extends State<ProfileTab> {
             iconColor: Colors.red,
             labelColor: Colors.red,
             onTap: () async {
-              // show confirmation dialog before logging out
-              final shouldLogout = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Confirm '),
-                  titleTextStyle: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  content: const Text('Are you sure you want to log out?'),
-                  contentTextStyle: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('No'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Yes'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (shouldLogout != true) return;
               await _authService.signOut();
               if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(
@@ -172,21 +130,15 @@ class _ProfileTabState extends State<ProfileTab> {
     Color? labelColor,
   }) {
     return ListTile(
-      leading: Icon(icon,
-          color: enabled
-              ? (iconColor ?? Colors.grey.shade700)
-              : Colors.grey.shade400),
+      leading: Icon(icon, color: enabled ? (iconColor ?? Colors.grey.shade700) : Colors.grey.shade400),
       title: Text(
         label,
         style: TextStyle(
-          color:
-              enabled ? (labelColor ?? Colors.black87) : Colors.grey.shade400,
+          color: enabled ? (labelColor ?? Colors.black87) : Colors.grey.shade400,
           fontWeight: FontWeight.w500,
         ),
       ),
-      subtitle: subtitle != null
-          ? Text(subtitle, style: const TextStyle(fontSize: 12))
-          : null,
+      subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12)) : null,
       trailing: enabled ? const Icon(Icons.chevron_right, size: 20) : null,
       onTap: enabled ? onTap : null,
     );

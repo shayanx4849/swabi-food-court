@@ -4,12 +4,15 @@ import '../../services/database_service.dart';
 import '../../models/business.dart';
 import '../../models/listing.dart';
 import '../../models/order.dart';
+import '../../models/menu_item.dart';
 import '../../widgets/listing_card.dart';
+import '../../widgets/menu_item_card.dart';
 import '../../widgets/order_card.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/star_rating.dart';
 import '../auth/login_screen.dart';
 import 'add_listing_screen.dart';
+import 'add_menu_item_screen.dart';
 import 'edit_listing_screen.dart';
 import 'qr_scan_screen.dart';
 
@@ -85,8 +88,21 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
     }
 
     return DefaultTabController(
-      length: 2,
-      child: Scaffold(
+      length: 3,
+      child: Builder(
+        builder: (context) {
+          final tabController = DefaultTabController.of(context);
+          return AnimatedBuilder(
+            animation: tabController,
+            builder: (context, _) => _buildScaffold(context, tabController.index),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, int currentTabIndex) {
+    return Scaffold(
         appBar: AppBar(
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,13 +112,11 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
               if (_business!.ratingCount > 0)
                 Row(
                   children: [
-                    StarRating(
-                        rating: _business!.averageRating.round(), size: 12),
+                    StarRating(rating: _business!.averageRating.round(), size: 12),
                     const SizedBox(width: 4),
                     Text(
                       '${_business!.averageRating.toStringAsFixed(1)} (${_business!.ratingCount})',
-                      style: const TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.normal),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
                     ),
                   ],
                 )
@@ -138,50 +152,64 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
           ],
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'My listings'),
+              Tab(text: 'Surprise Bags'),
+              Tab(text: 'Menu'),
               Tab(text: 'Orders'),
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          icon: const Icon(Icons.add),
-          label: const Text('New listing'),
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AddListingScreen(business: _business!),
-              ),
-            );
-          },
-        ),
+        // FAB changes with the selected tab: "New listing" on Surprise Bags,
+        // "Add menu item" on Menu, and hidden on Orders (nothing to create there).
+        floatingActionButton: currentTabIndex == 0
+            ? FloatingActionButton.extended(
+                icon: const Icon(Icons.add),
+                label: const Text('New listing'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AddListingScreen(business: _business!),
+                    ),
+                  );
+                },
+              )
+            : currentTabIndex == 1
+                ? FloatingActionButton.extended(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add menu item'),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => AddMenuItemScreen(business: _business!),
+                        ),
+                      );
+                    },
+                  )
+                : null,
         body: Column(
           children: [
             if (!_business!.verified)
               Container(
                 width: double.infinity,
                 color: Colors.orange.shade50,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(
                   children: [
-                    Icon(Icons.hourglass_empty,
-                        size: 18, color: Colors.orange.shade800),
+                    Icon(Icons.hourglass_empty, size: 18, color: Colors.orange.shade800),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Pending admin approval — your listings won\'t appear '
-                        'to customers until your account is verified.',
-                        style: TextStyle(
-                            fontSize: 12.5, color: Colors.orange.shade900),
+                        'Pending admin approval — your listings and menu won\'t '
+                        'appear to customers until your account is verified.',
+                        style: TextStyle(fontSize: 12.5, color: Colors.orange.shade900),
                       ),
                     ),
                   ],
                 ),
               ),
             // Keys force Flutter to treat these as stable, distinct tab pages
-            // (see _BusinessListingsTab / _BusinessOrdersTab below for why
-            // each one owns and caches its own stream instead of recreating
-            // it).
+            // (see _BusinessListingsTab / _BusinessMenuTab / _BusinessOrdersTab
+            // below for why each one owns and caches its own stream instead
+            // of recreating it).
             Expanded(
               child: TabBarView(
                 children: [
@@ -189,6 +217,11 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
                     key: ValueKey('listings-${_business!.id}'),
                     databaseService: _databaseService,
                     businessId: _business!.id,
+                  ),
+                  _BusinessMenuTab(
+                    key: ValueKey('menu-${_business!.id}'),
+                    databaseService: _databaseService,
+                    business: _business!,
                   ),
                   _BusinessOrdersTab(
                     key: ValueKey('orders-${_business!.id}'),
@@ -200,7 +233,6 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -238,14 +270,12 @@ class _BusinessListingsTabState extends State<_BusinessListingsTab>
   @override
   bool get wantKeepAlive => true;
 
-  Future<void> _confirmDelete(
-      BuildContext context, String listingId, String title) async {
+  Future<void> _confirmDelete(BuildContext context, String listingId, String title) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete this listing?'),
-        content: Text(
-            '"$title" will be permanently removed. This cannot be undone.'),
+        content: Text('"$title" will be permanently removed. This cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -284,8 +314,7 @@ class _BusinessListingsTabState extends State<_BusinessListingsTab>
         }
         final listings = snapshot.data!;
         if (listings.isEmpty) {
-          return const Center(
-              child: Text('No listings yet. Tap + to add one.'));
+          return const Center(child: Text('No listings yet. Tap + to add one.'));
         }
         return ListView.builder(
           padding: const EdgeInsets.all(12),
@@ -311,12 +340,129 @@ class _BusinessListingsTabState extends State<_BusinessListingsTab>
                   ),
                   Expanded(
                     child: TextButton.icon(
-                      icon: const Icon(Icons.delete_outline,
-                          size: 18, color: Colors.red),
-                      label: const Text('Delete',
-                          style: TextStyle(color: Colors.red)),
-                      onPressed: () =>
-                          _confirmDelete(context, listing.id, listing.title),
+                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                      onPressed: () => _confirmDelete(context, listing.id, listing.title),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// "Menu" tab content — a business's regular, always-available items,
+/// separate from their time-limited surplus listings. Same keep-alive
+/// pattern as the other tabs.
+class _BusinessMenuTab extends StatefulWidget {
+  final DatabaseService databaseService;
+  final Business business;
+
+  const _BusinessMenuTab({
+    super.key,
+    required this.databaseService,
+    required this.business,
+  });
+
+  @override
+  State<_BusinessMenuTab> createState() => _BusinessMenuTabState();
+}
+
+class _BusinessMenuTabState extends State<_BusinessMenuTab>
+    with AutomaticKeepAliveClientMixin {
+  late final Stream<List<MenuItem>> _stream =
+      widget.databaseService.streamBusinessMenuItems(widget.business.id);
+
+  @override
+  bool get wantKeepAlive => true;
+
+  Future<void> _confirmDelete(BuildContext context, String itemId, String name) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Remove this item?'),
+        content: Text('"$name" will be permanently removed from your menu.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await widget.databaseService.deleteMenuItem(itemId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return StreamBuilder<List<MenuItem>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Failed to load menu:\n${snapshot.error}', textAlign: TextAlign.center),
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final items = snapshot.data!;
+        if (items.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'No menu items yet. Tap + to add your everyday menu — '
+                'no expiry, always orderable.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: items.length,
+          itemBuilder: (context, i) {
+            final item = items[i];
+            return MenuItemCard(
+              item: item,
+              businessActions: Row(
+                children: [
+                  Expanded(
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: const Text('Edit'),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AddMenuItemScreen(
+                              business: widget.business,
+                              existingItem: item,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                      onPressed: () => _confirmDelete(context, item.id, item.name),
                     ),
                   ),
                 ],
@@ -379,20 +525,31 @@ class _BusinessOrdersTabState extends State<_BusinessOrdersTab>
           itemCount: orders.length,
           itemBuilder: (context, i) {
             final order = orders[i];
+            final showAcceptButton = order.isMenuOrder && order.status == 'pending';
             final showDeliverButton =
-                order.isDelivery && order.status == 'pending';
-            return OrderCard(
-              order: order,
-              footer: showDeliverButton
-                  ? OutlinedButton.icon(
-                      icon: const Icon(Icons.delivery_dining, size: 18),
-                      label: const Text('Mark as delivered'),
-                      onPressed: () async {
-                        await widget.databaseService.markAsDelivered(order.id);
-                      },
-                    )
-                  : null,
-            );
+                order.isDelivery && (order.status == 'pending' || order.status == 'confirmed');
+
+            Widget? footer;
+            if (showAcceptButton) {
+              footer = FilledButton.icon(
+                icon: const Icon(Icons.check, size: 18),
+                label: const Text('Accept order — start preparing'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
+                onPressed: () async {
+                  await widget.databaseService.confirmOrder(order.id);
+                },
+              );
+            } else if (showDeliverButton) {
+              footer = OutlinedButton.icon(
+                icon: const Icon(Icons.delivery_dining, size: 18),
+                label: const Text('Mark as delivered'),
+                onPressed: () async {
+                  await widget.databaseService.markAsDelivered(order.id);
+                },
+              );
+            }
+
+            return OrderCard(order: order, footer: footer);
           },
         );
       },

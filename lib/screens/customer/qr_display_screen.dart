@@ -44,8 +44,7 @@ class QrDisplayScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.delivery_dining,
-                            color: Colors.green.shade700),
+                        Icon(Icons.delivery_dining, color: Colors.green.shade700),
                         const SizedBox(width: 8),
                         const Text('Delivery requested',
                             style: TextStyle(fontWeight: FontWeight.bold)),
@@ -55,14 +54,12 @@ class QrDisplayScreen extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 18, color: Colors.grey.shade700),
+                        Icon(Icons.location_on_outlined, size: 18, color: Colors.grey.shade700),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             order.deliveryAddress ?? '',
-                            style: TextStyle(
-                                fontSize: 13.5, color: Colors.grey.shade800),
+                            style: TextStyle(fontSize: 13.5, color: Colors.grey.shade800),
                           ),
                         ),
                       ],
@@ -76,8 +73,7 @@ class QrDisplayScreen extends StatelessWidget {
                 'There is no live delivery tracking yet — check "My Orders" '
                 'for status updates.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
+                style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
               ),
             ] else ...[
               Container(

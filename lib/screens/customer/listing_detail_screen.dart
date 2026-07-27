@@ -26,8 +26,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Business? _business;
   String _orderType = 'pickup'; // 'pickup' or 'delivery'
 
-  static const double deliveryFee =
-      100; // flat fee — no distance-based pricing in this MVP
+  static const double deliveryFee = 100; // flat fee — no distance-based pricing in this MVP
 
   @override
   void initState() {
@@ -36,8 +35,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   Future<void> _loadBusiness() async {
-    final business =
-        await _databaseService.getBusinessById(widget.listing.businessId);
+    final business = await _databaseService.getBusinessById(widget.listing.businessId);
     if (mounted) setState(() => _business = business);
   }
 
@@ -59,8 +57,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         customerId: firebaseUser.uid,
         customerName: profile?.name ?? 'Customer',
         orderType: _orderType,
-        deliveryAddress:
-            _orderType == 'delivery' ? _addressCtrl.text.trim() : null,
+        deliveryAddress: _orderType == 'delivery' ? _addressCtrl.text.trim() : null,
         deliveryFee: _orderType == 'delivery' ? deliveryFee : 0,
       );
 
@@ -82,8 +79,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Could not reserve — it may be sold out.')),
+          const SnackBar(content: Text('Could not reserve — it may be sold out.')),
         );
       }
     } finally {
@@ -161,8 +157,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                   transform: Matrix4.translationValues(0, -20, 0),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 130),
                   child: Column(
@@ -174,8 +169,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           CircleAvatar(
                             radius: 16,
                             backgroundColor: Colors.green.shade50,
-                            child: Icon(Icons.storefront,
-                                size: 18, color: Colors.green.shade700),
+                            child: Icon(Icons.storefront, size: 18, color: Colors.green.shade700),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -190,8 +184,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           ),
                           if (!soldOut && discountPercent > 0)
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
                                 color: Colors.green.shade700,
                                 borderRadius: BorderRadius.circular(20),
@@ -213,15 +206,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            StarRating(
-                                rating: _business!.averageRating.round(),
-                                size: 15),
+                            StarRating(rating: _business!.averageRating.round(), size: 15),
                             const SizedBox(width: 6),
                             Text(
                               '${_business!.averageRating.toStringAsFixed(1)} '
                               '(${_business!.ratingCount} review${_business!.ratingCount == 1 ? '' : 's'})',
-                              style: TextStyle(
-                                  fontSize: 12.5, color: Colors.grey.shade600),
+                              style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
                             ),
                           ],
                         ),
@@ -231,18 +221,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
                       Text(
                         l.title,
-                        style: const TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 10),
 
                       if (l.description.isNotEmpty) ...[
                         Text(
                           l.description,
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
-                              height: 1.4),
+                          style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.4),
                         ),
                         const SizedBox(height: 20),
                       ] else
@@ -286,8 +272,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                 label: 'Pickup',
                                 subtitle: 'Free',
                                 selected: _orderType == 'pickup',
-                                onTap: () =>
-                                    setState(() => _orderType = 'pickup'),
+                                onTap: () => setState(() => _orderType = 'pickup'),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -295,11 +280,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                               child: _orderTypeCard(
                                 icon: Icons.delivery_dining,
                                 label: 'Delivery',
-                                subtitle:
-                                    'Rs. ${deliveryFee.toStringAsFixed(0)}',
+                                subtitle: 'Rs. ${deliveryFee.toStringAsFixed(0)}',
                                 selected: _orderType == 'delivery',
-                                onTap: () =>
-                                    setState(() => _orderType = 'delivery'),
+                                onTap: () => setState(() => _orderType = 'delivery'),
                               ),
                             ),
                           ],
@@ -312,23 +295,19 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             decoration: InputDecoration(
                               labelText: 'Delivery address',
                               hintText: 'House/street, area, city',
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10)),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                               isDense: true,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.info_outline,
-                                  size: 14, color: Colors.grey.shade500),
+                              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   'No live tracking yet — the business will contact you to arrange drop-off.',
-                                  style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: Colors.grey.shade500),
+                                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
                                 ),
                               ),
                             ],
@@ -338,23 +317,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       ],
 
                       // ---- Pickup location ----
-                      if (_business != null &&
-                          _business!.address.isNotEmpty) ...[
+                      if (_business != null && _business!.address.isNotEmpty) ...[
                         _sectionLabel('Pickup location'),
                         const SizedBox(height: 8),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.location_on_outlined,
-                                size: 18, color: Colors.grey.shade600),
+                            Icon(Icons.location_on_outlined, size: 18, color: Colors.grey.shade600),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 _business!.address,
-                                style: TextStyle(
-                                    fontSize: 13.5,
-                                    color: Colors.grey.shade700,
-                                    height: 1.4),
+                                style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700, height: 1.4),
                               ),
                             ),
                           ],
@@ -373,8 +347,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.eco,
-                                color: Colors.green.shade700, size: 22),
+                            Icon(Icons.eco, color: Colors.green.shade700, size: 22),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -399,17 +372,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline,
-                              size: 18, color: Colors.grey.shade600),
+                          Icon(Icons.info_outline, size: 18, color: Colors.grey.shade600),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'This is a "Surprise Bag" — exact contents may vary based on '
                               'what surplus food is available at pickup time.',
-                              style: TextStyle(
-                                  fontSize: 12.5,
-                                  color: Colors.grey.shade600,
-                                  height: 1.4),
+                              style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
                             ),
                           ),
                         ],
@@ -476,8 +445,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       if (!soldOut && _orderType == 'delivery')
                         Text(
                           'incl. Rs. ${deliveryFee.toStringAsFixed(0)} delivery',
-                          style: TextStyle(
-                              fontSize: 10.5, color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
                         ),
                     ],
                   ),
@@ -502,8 +470,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             )
                           : Text(
                               soldOut ? 'Sold out' : 'Reserve this bag',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                     ),
                   ),
@@ -545,9 +512,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         ),
         child: Column(
           children: [
-            Icon(icon,
-                size: 22,
-                color: selected ? Colors.green.shade700 : Colors.grey.shade600),
+            Icon(icon, size: 22, color: selected ? Colors.green.shade700 : Colors.grey.shade600),
             const SizedBox(height: 4),
             Text(
               label,
@@ -594,8 +559,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-  Widget _infoChip(
-      {required IconData icon, required String label, bool highlight = false}) {
+  Widget _infoChip({required IconData icon, required String label, bool highlight = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -606,9 +570,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              size: 15,
-              color: highlight ? Colors.orange.shade800 : Colors.grey.shade700),
+          Icon(icon, size: 15, color: highlight ? Colors.orange.shade800 : Colors.grey.shade700),
           const SizedBox(width: 6),
           Text(
             label,

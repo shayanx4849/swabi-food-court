@@ -27,11 +27,9 @@ class ListingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final timeFormat = DateFormat('h:mm a');
     final expired = listing.isExpired;
-    final soldOut =
-        listing.quantityAvailable <= 0 || listing.status != 'active' || expired;
+    final soldOut = listing.quantityAvailable <= 0 || listing.status != 'active' || expired;
     final discountPercent = listing.originalPrice > 0
-        ? (((listing.originalPrice - listing.price) / listing.originalPrice) *
-                100)
+        ? (((listing.originalPrice - listing.price) / listing.originalPrice) * 100)
             .round()
         : 0;
 
@@ -79,8 +77,7 @@ class ListingCard extends StatelessWidget {
                     top: 10,
                     left: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: Colors.green.shade700,
                         borderRadius: BorderRadius.circular(20),
@@ -100,21 +97,18 @@ class ListingCard extends StatelessWidget {
                     bottom: 10,
                     right: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
+                        color: Colors.black.withOpacity(0.6),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.place,
-                              color: Colors.white, size: 12),
+                          const Icon(Icons.place, color: Colors.white, size: 12),
                           const SizedBox(width: 3),
                           Text(distanceLabel!,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 11)),
+                              style: const TextStyle(color: Colors.white, fontSize: 11)),
                         ],
                       ),
                     ),
@@ -130,8 +124,7 @@ class ListingCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(_categoryIcon(),
-                          size: 16, color: Colors.grey.shade600),
+                      Icon(_categoryIcon(), size: 16, color: Colors.grey.shade600),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -145,8 +138,7 @@ class ListingCard extends StatelessWidget {
                         ),
                       ),
                       if (rating != null && (ratingCount ?? 0) > 0) ...[
-                        Icon(Icons.star,
-                            size: 14, color: Colors.amber.shade700),
+                        Icon(Icons.star, size: 14, color: Colors.amber.shade700),
                         const SizedBox(width: 2),
                         Text(
                           '${rating!.toStringAsFixed(1)} ($ratingCount)',
@@ -162,17 +154,15 @@ class ListingCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     listing.title,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.orange.shade50,
                           borderRadius: BorderRadius.circular(8),
@@ -181,8 +171,7 @@ class ListingCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.access_time,
-                                size: 13, color: Colors.orange.shade800),
+                            Icon(Icons.access_time, size: 13, color: Colors.orange.shade800),
                             const SizedBox(width: 4),
                             Text(
                               '${timeFormat.format(listing.pickupStart)} - ${timeFormat.format(listing.pickupEnd)}',
@@ -207,9 +196,7 @@ class ListingCard extends StatelessWidget {
                         ),
                       const SizedBox(width: 6),
                       Text(
-                        soldOut
-                            ? 'Sold out'
-                            : 'Rs. ${listing.price.toStringAsFixed(0)}',
+                        soldOut ? 'Sold out' : 'Rs. ${listing.price.toStringAsFixed(0)}',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -222,8 +209,7 @@ class ListingCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       '${listing.quantityAvailable} bag${listing.quantityAvailable == 1 ? '' : 's'} left',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
                   if (businessActions != null) ...[

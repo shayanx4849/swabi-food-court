@@ -9,6 +9,7 @@ import '../../widgets/listing_card.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/impact_banner.dart';
 import 'listing_detail_screen.dart';
+import 'restaurants_search_screen.dart';
 
 /// The Home tab — a lightweight dashboard: personal greeting, the app-wide
 /// impact banner, category filter chips, and a horizontally-scrolling
@@ -53,12 +54,11 @@ class _HomeTabState extends State<HomeTab> {
   Future<void> _loadLocation() async {
     try {
       final pos = await _locationService.getCurrentLocation();
-      if (mounted) {
+      if (mounted)
         setState(() {
           _lat = pos.latitude;
           _lng = pos.longitude;
         });
-      }
     } catch (e) {
       // ignore: avoid_print
       print('[Location] Could not get location: $e');
@@ -102,7 +102,19 @@ class _HomeTabState extends State<HomeTab> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('BachaoKhana'),
-        actions: const [NotificationBell()],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.restaurant_menu),
+            tooltip: 'Order from a restaurant menu',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const RestaurantsSearchScreen()),
+              );
+            },
+          ),
+          const NotificationBell(),
+        ],
       ),
       body: StreamBuilder<List<FoodListing>>(
         stream: _databaseService.streamVerifiedActiveListings(),
@@ -134,12 +146,12 @@ class _HomeTabState extends State<HomeTab> {
 
               // ---- Category chips ----
               SizedBox(
-                height: 90,
+                height: 88,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   itemCount: _categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 20),
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
                   itemBuilder: (context, i) {
                     final cat = _categories[i];
                     final selected = _selectedCategory == cat['key'];
@@ -185,6 +197,55 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
+              // ---- Order from a restaurant's regular menu ----
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const RestaurantsSearchScreen()),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.orange.shade100),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.restaurant_menu,
+                            color: Colors.orange.shade800),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Order from a restaurant\'s regular menu',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange.shade900),
+                              ),
+                              Text(
+                                'No deals or time limits — order any time',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade800),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right,
+                            color: Colors.orange.shade800),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
               // ---- Nearby offers header ----
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
@@ -220,7 +281,7 @@ class _HomeTabState extends State<HomeTab> {
                 )
               else
                 SizedBox(
-                  height: 310,
+                  height: 300,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -232,7 +293,7 @@ class _HomeTabState extends State<HomeTab> {
                           ? '${_locationService.distanceInKm(_lat!, _lng!, listing.lat, listing.lng).toStringAsFixed(1)} km'
                           : null;
                       return SizedBox(
-                        width: 285,
+                        width: 260,
                         child: ListingCard(
                           listing: listing,
                           distanceLabel: distanceLabel,
