@@ -27,7 +27,8 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
   static const double deliveryFee = 100;
 
   double get _totalPrice =>
-      (widget.item.price * _quantity) + (_orderType == 'delivery' ? deliveryFee : 0);
+      (widget.item.price * _quantity) +
+      (_orderType == 'delivery' ? deliveryFee : 0);
 
   Future<void> _placeOrder() async {
     if (_orderType == 'delivery' && _addressCtrl.text.trim().isEmpty) {
@@ -53,7 +54,8 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
           customerId: firebaseUser.uid,
           customerName: profile?.name ?? 'Customer',
           orderType: _orderType,
-          deliveryAddress: _orderType == 'delivery' ? _addressCtrl.text.trim() : null,
+          deliveryAddress:
+              _orderType == 'delivery' ? _addressCtrl.text.trim() : null,
           deliveryFee: _orderType == 'delivery' ? deliveryFee / _quantity : 0,
         );
       }
@@ -94,28 +96,38 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
               ),
             ),
           const SizedBox(height: 16),
-          Text(item.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(item.name,
+              style:
+                  const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           if (item.description.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(item.description, style: TextStyle(color: Colors.grey.shade700, height: 1.4)),
+            Text(item.description,
+                style: TextStyle(color: Colors.grey.shade700, height: 1.4)),
           ],
           const SizedBox(height: 10),
           Text(
             'Rs. ${item.price.toStringAsFixed(0)}',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.green.shade700),
           ),
           const SizedBox(height: 20),
 
           // ---- Quantity ----
           Row(
             children: [
-              const Text('Quantity', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Quantity',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.remove_circle_outline),
-                onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                onPressed:
+                    _quantity > 1 ? () => setState(() => _quantity--) : null,
               ),
-              Text('$_quantity', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('$_quantity',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold)),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline),
                 onPressed: () => setState(() => _quantity++),
@@ -128,7 +140,8 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
           const SizedBox(height: 12),
 
           // ---- Pickup vs Delivery ----
-          const Text('How would you like to get it?', style: TextStyle(fontWeight: FontWeight.w600)),
+          const Text('How would you like to get it?',
+              style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -161,7 +174,8 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
               decoration: InputDecoration(
                 labelText: 'Delivery address',
                 hintText: 'House/street, area, city',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 isDense: true,
               ),
             ),
@@ -190,19 +204,23 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
             children: [
               Text(
                 'Rs. ${_totalPrice.toStringAsFixed(0)}',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.green.shade700,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 ),
                 onPressed: (item.available && !_ordering) ? _placeOrder : null,
                 child: _ordering
                     ? const SizedBox(
-                        height: 18, width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
                     : Text(item.available ? 'Place order' : 'Unavailable'),
               ),
             ],
@@ -226,18 +244,25 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
         decoration: BoxDecoration(
           color: selected ? Colors.green.shade50 : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? Colors.green.shade700 : Colors.transparent, width: 1.5),
+          border: Border.all(
+              color: selected ? Colors.green.shade700 : Colors.transparent,
+              width: 1.5),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 22, color: selected ? Colors.green.shade700 : Colors.grey.shade600),
+            Icon(icon,
+                size: 22,
+                color: selected ? Colors.green.shade700 : Colors.grey.shade600),
             const SizedBox(height: 4),
             Text(label,
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: selected ? Colors.green.shade800 : Colors.grey.shade800)),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                    color: selected
+                        ? Colors.green.shade800
+                        : Colors.grey.shade800)),
+            Text(subtitle,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
           ],
         ),
       ),

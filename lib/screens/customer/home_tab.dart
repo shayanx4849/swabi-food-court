@@ -5,11 +5,14 @@ import '../../services/location_service.dart';
 import '../../models/listing.dart';
 import '../../models/business.dart';
 import '../../models/app_user.dart';
+import '../../models/menu_item.dart';
 import '../../widgets/listing_card.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/impact_banner.dart';
+import '../../widgets/menu_item_grid_card.dart';
 import 'listing_detail_screen.dart';
 import 'restaurants_search_screen.dart';
+import 'menu_item_detail_screen.dart';
 
 /// The Home tab — a lightweight dashboard: personal greeting, the app-wide
 /// impact banner, category filter chips, and a horizontally-scrolling
@@ -54,11 +57,12 @@ class _HomeTabState extends State<HomeTab> {
   Future<void> _loadLocation() async {
     try {
       final pos = await _locationService.getCurrentLocation();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _lat = pos.latitude;
           _lng = pos.longitude;
         });
+      }
     } catch (e) {
       // ignore: avoid_print
       print('[Location] Could not get location: $e');
@@ -312,6 +316,82 @@ class _HomeTabState extends State<HomeTab> {
                     },
                   ),
                 ),
+
+              // ---- Restaurant Menu section ----
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 22, 12, 8),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text('Restaurant Menu',
+                          style: TextStyle(
+                              fontSize: 17, fontWeight: FontWeight.bold)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const RestaurantsSearchScreen()),
+                        );
+                      },
+                      child: const Text('See all'),
+                    ),
+                  ],
+                ),
+              ),
+              StreamBuilder<List<MenuItem>>(
+                stream: _databaseService.streamVerifiedMenuItems(),
+                builder: (context, menuSnapshot) {
+                  if (!menuSnapshot.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 30),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final menuItems =
+                      menuSnapshot.data!.where((i) => i.available).toList();
+                  if (menuItems.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 20),
+                      child: Text(
+                        'No restaurant menu items available yet.',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    );
+                  }
+                  // Sized so exactly two cards are visible across the
+                  // screen width at once, per the requested layout.
+                  final cardWidth =
+                      (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2;
+                  return SizedBox(
+                    height: 235,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: menuItems.take(10).length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, i) {
+                        final item = menuItems[i];
+                        return SizedBox(
+                          width: cardWidth,
+                          child: MenuItemGridCard(
+                            item: item,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      MenuItemDetailScreen(item: item),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
             ],
           );
         },

@@ -143,7 +143,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 if (_role == 'business') ...[
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: _businessCategory,
+                    initialValue: _businessCategory,
                     decoration: const InputDecoration(labelText: 'Category'),
                     items: const [
                       DropdownMenuItem(

@@ -94,7 +94,8 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
           final tabController = DefaultTabController.of(context);
           return AnimatedBuilder(
             animation: tabController,
-            builder: (context, _) => _buildScaffold(context, tabController.index),
+            builder: (context, _) =>
+                _buildScaffold(context, tabController.index),
           );
         },
       ),
@@ -103,136 +104,140 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
 
   Widget _buildScaffold(BuildContext context, int currentTabIndex) {
     return Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_business!.name),
-              if (_business!.ratingCount > 0)
-                Row(
-                  children: [
-                    StarRating(rating: _business!.averageRating.round(), size: 12),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${_business!.averageRating.toStringAsFixed(1)} (${_business!.ratingCount})',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
-                    ),
-                  ],
-                )
-              else
-                const Text(
-                  'No ratings yet',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
-                ),
-            ],
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_business!.name),
+            if (_business!.ratingCount > 0)
+              Row(
+                children: [
+                  StarRating(
+                      rating: _business!.averageRating.round(), size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_business!.averageRating.toStringAsFixed(1)} (${_business!.ratingCount})',
+                    style: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.normal),
+                  ),
+                ],
+              )
+            else
+              const Text(
+                'No ratings yet',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
+              ),
+          ],
+        ),
+        actions: [
+          const NotificationBell(),
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: 'Scan pickup QR',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QrScanScreen()),
+              );
+            },
           ),
-          actions: [
-            const NotificationBell(),
-            IconButton(
-              icon: const Icon(Icons.qr_code_scanner),
-              tooltip: 'Scan pickup QR',
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await _authService.signOut();
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
+        bottom: const TabBar(
+          tabs: [
+            Tab(text: 'Surprise Bags'),
+            Tab(text: 'Menu'),
+            Tab(text: 'Orders'),
+          ],
+        ),
+      ),
+      // FAB changes with the selected tab: "New listing" on Surprise Bags,
+      // "Add menu item" on Menu, and hidden on Orders (nothing to create there).
+      floatingActionButton: currentTabIndex == 0
+          ? FloatingActionButton.extended(
+              icon: const Icon(Icons.add),
+              label: const Text('New listing'),
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const QrScanScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => AddListingScreen(business: _business!),
+                  ),
                 );
               },
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () async {
-                await _authService.signOut();
-                if (!mounted) return;
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              },
-            ),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Surprise Bags'),
-              Tab(text: 'Menu'),
-              Tab(text: 'Orders'),
-            ],
-          ),
-        ),
-        // FAB changes with the selected tab: "New listing" on Surprise Bags,
-        // "Add menu item" on Menu, and hidden on Orders (nothing to create there).
-        floatingActionButton: currentTabIndex == 0
-            ? FloatingActionButton.extended(
-                icon: const Icon(Icons.add),
-                label: const Text('New listing'),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => AddListingScreen(business: _business!),
-                    ),
-                  );
-                },
-              )
-            : currentTabIndex == 1
-                ? FloatingActionButton.extended(
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add menu item'),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AddMenuItemScreen(business: _business!),
-                        ),
-                      );
-                    },
-                  )
-                : null,
-        body: Column(
-          children: [
-            if (!_business!.verified)
-              Container(
-                width: double.infinity,
-                color: Colors.orange.shade50,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Row(
-                  children: [
-                    Icon(Icons.hourglass_empty, size: 18, color: Colors.orange.shade800),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Pending admin approval — your listings and menu won\'t '
-                        'appear to customers until your account is verified.',
-                        style: TextStyle(fontSize: 12.5, color: Colors.orange.shade900),
+            )
+          : currentTabIndex == 1
+              ? FloatingActionButton.extended(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add menu item'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AddMenuItemScreen(business: _business!),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            // Keys force Flutter to treat these as stable, distinct tab pages
-            // (see _BusinessListingsTab / _BusinessMenuTab / _BusinessOrdersTab
-            // below for why each one owns and caches its own stream instead
-            // of recreating it).
-            Expanded(
-              child: TabBarView(
+                    );
+                  },
+                )
+              : null,
+      body: Column(
+        children: [
+          if (!_business!.verified)
+            Container(
+              width: double.infinity,
+              color: Colors.orange.shade50,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
                 children: [
-                  _BusinessListingsTab(
-                    key: ValueKey('listings-${_business!.id}'),
-                    databaseService: _databaseService,
-                    businessId: _business!.id,
-                  ),
-                  _BusinessMenuTab(
-                    key: ValueKey('menu-${_business!.id}'),
-                    databaseService: _databaseService,
-                    business: _business!,
-                  ),
-                  _BusinessOrdersTab(
-                    key: ValueKey('orders-${_business!.id}'),
-                    databaseService: _databaseService,
-                    businessId: _business!.id,
+                  Icon(Icons.hourglass_empty,
+                      size: 18, color: Colors.orange.shade800),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Pending admin approval — your listings and menu won\'t '
+                      'appear to customers until your account is verified.',
+                      style: TextStyle(
+                          fontSize: 12.5, color: Colors.orange.shade900),
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          // Keys force Flutter to treat these as stable, distinct tab pages
+          // (see _BusinessListingsTab / _BusinessMenuTab / _BusinessOrdersTab
+          // below for why each one owns and caches its own stream instead
+          // of recreating it).
+          Expanded(
+            child: TabBarView(
+              children: [
+                _BusinessListingsTab(
+                  key: ValueKey('listings-${_business!.id}'),
+                  databaseService: _databaseService,
+                  businessId: _business!.id,
+                ),
+                _BusinessMenuTab(
+                  key: ValueKey('menu-${_business!.id}'),
+                  databaseService: _databaseService,
+                  business: _business!,
+                ),
+                _BusinessOrdersTab(
+                  key: ValueKey('orders-${_business!.id}'),
+                  databaseService: _databaseService,
+                  businessId: _business!.id,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -270,12 +275,14 @@ class _BusinessListingsTabState extends State<_BusinessListingsTab>
   @override
   bool get wantKeepAlive => true;
 
-  Future<void> _confirmDelete(BuildContext context, String listingId, String title) async {
+  Future<void> _confirmDelete(
+      BuildContext context, String listingId, String title) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete this listing?'),
-        content: Text('"$title" will be permanently removed. This cannot be undone.'),
+        content: Text(
+            '"$title" will be permanently removed. This cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -314,7 +321,8 @@ class _BusinessListingsTabState extends State<_BusinessListingsTab>
         }
         final listings = snapshot.data!;
         if (listings.isEmpty) {
-          return const Center(child: Text('No listings yet. Tap + to add one.'));
+          return const Center(
+              child: Text('No listings yet. Tap + to add one.'));
         }
         return ListView.builder(
           padding: const EdgeInsets.all(12),
@@ -340,9 +348,12 @@ class _BusinessListingsTabState extends State<_BusinessListingsTab>
                   ),
                   Expanded(
                     child: TextButton.icon(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
-                      onPressed: () => _confirmDelete(context, listing.id, listing.title),
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: Colors.red),
+                      label: const Text('Delete',
+                          style: TextStyle(color: Colors.red)),
+                      onPressed: () =>
+                          _confirmDelete(context, listing.id, listing.title),
                     ),
                   ),
                 ],
@@ -380,7 +391,8 @@ class _BusinessMenuTabState extends State<_BusinessMenuTab>
   @override
   bool get wantKeepAlive => true;
 
-  Future<void> _confirmDelete(BuildContext context, String itemId, String name) async {
+  Future<void> _confirmDelete(
+      BuildContext context, String itemId, String name) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -413,7 +425,8 @@ class _BusinessMenuTabState extends State<_BusinessMenuTab>
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Failed to load menu:\n${snapshot.error}', textAlign: TextAlign.center),
+              child: Text('Failed to load menu:\n${snapshot.error}',
+                  textAlign: TextAlign.center),
             ),
           );
         }
@@ -460,9 +473,12 @@ class _BusinessMenuTabState extends State<_BusinessMenuTab>
                   ),
                   Expanded(
                     child: TextButton.icon(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
-                      onPressed: () => _confirmDelete(context, item.id, item.name),
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: Colors.red),
+                      label: const Text('Delete',
+                          style: TextStyle(color: Colors.red)),
+                      onPressed: () =>
+                          _confirmDelete(context, item.id, item.name),
                     ),
                   ),
                 ],
@@ -525,16 +541,18 @@ class _BusinessOrdersTabState extends State<_BusinessOrdersTab>
           itemCount: orders.length,
           itemBuilder: (context, i) {
             final order = orders[i];
-            final showAcceptButton = order.isMenuOrder && order.status == 'pending';
-            final showDeliverButton =
-                order.isDelivery && (order.status == 'pending' || order.status == 'confirmed');
+            final showAcceptButton =
+                order.isMenuOrder && order.status == 'pending';
+            final showDeliverButton = order.isDelivery &&
+                (order.status == 'pending' || order.status == 'confirmed');
 
             Widget? footer;
             if (showAcceptButton) {
               footer = FilledButton.icon(
                 icon: const Icon(Icons.check, size: 18),
                 label: const Text('Accept order — start preparing'),
-                style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
+                style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green.shade700),
                 onPressed: () async {
                   await widget.databaseService.confirmOrder(order.id);
                 },

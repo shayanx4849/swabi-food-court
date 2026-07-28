@@ -7,7 +7,8 @@ import '../models/order.dart';
 class OrderCard extends StatelessWidget {
   final FoodOrder order;
   final VoidCallback? onTap;
-  final Widget? footer; // optional extra row below the main tile (e.g. Rate button)
+  final Widget?
+      footer; // optional extra row below the main tile (e.g. Rate button)
 
   const OrderCard({super.key, required this.order, this.onTap, this.footer});
 
@@ -37,11 +38,13 @@ class OrderCard extends StatelessWidget {
             title: Row(
               children: [
                 Expanded(
-                  child: Text(order.listingTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text(order.listingTitle,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
                 if (order.isDelivery)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(6),
@@ -49,9 +52,12 @@ class OrderCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.delivery_dining, size: 12, color: Colors.blue.shade700),
+                        Icon(Icons.delivery_dining,
+                            size: 12, color: Colors.blue.shade700),
                         const SizedBox(width: 3),
-                        Text('Delivery', style: TextStyle(fontSize: 10, color: Colors.blue.shade700)),
+                        Text('Delivery',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.blue.shade700)),
                       ],
                     ),
                   ),
@@ -71,9 +77,10 @@ class OrderCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w600)),
                 Container(
                   margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _statusColor().withOpacity(0.15),
+                    color: _statusColor().withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
