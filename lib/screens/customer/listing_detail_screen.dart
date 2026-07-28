@@ -3,10 +3,14 @@ import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/cart_service.dart';
 import '../../models/listing.dart';
 import '../../models/business.dart';
+import '../../models/cart_item.dart';
 import '../../widgets/star_rating.dart';
+import '../../widgets/cart_button.dart';
 import 'qr_display_screen.dart';
+import 'cart_screen.dart';
 
 /// Shows full details of a single surplus food listing and lets the
 /// customer reserve it. On success, navigates to the QR display screen.
@@ -21,6 +25,7 @@ class ListingDetailScreen extends StatefulWidget {
 class _ListingDetailScreenState extends State<ListingDetailScreen> {
   final _authService = AuthService();
   final _databaseService = DatabaseService();
+  final _cart = CartService.instance;
   final _addressCtrl = TextEditingController();
   bool _reserving = false;
   Business? _business;
@@ -28,6 +33,41 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   static const double deliveryFee =
       100; // flat fee — no distance-based pricing in this MVP
+
+  void _addToCart() {
+    final l = widget.listing;
+    final addedQty = _cart.addItem(CartItem(
+      sourceType: 'surplus',
+      itemId: l.id,
+      businessId: l.businessId,
+      businessName: l.businessName,
+      name: l.title,
+      price: l.price,
+      imageUrl: l.imageUrl,
+      quantity: 1,
+      maxQuantity: l.quantityAvailable,
+      pickupStart: l.pickupStart,
+      pickupEnd: l.pickupEnd,
+    ));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          addedQty > 0
+              ? 'Added "${l.title}" to cart'
+              : 'Only ${l.quantityAvailable} left — already in your cart',
+        ),
+        action: SnackBarAction(
+          label: 'View cart',
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CartScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -431,6 +471,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
           ),
 
+          // ---- Floating cart button ----
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 12,
+            child: Container(
+              decoration: const BoxDecoration(
+                  color: Colors.black38, shape: BoxShape.circle),
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                    iconTheme: const IconThemeData(color: Colors.white)),
+                child: const CartButton(),
+              ),
+            ),
+          ),
+
           // ---- Sticky bottom price + reserve bar ----
           Positioned(
             left: 0,
@@ -482,6 +537,24 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     ],
                   ),
                   const Spacer(),
+                  if (!soldOut) ...[
+                    SizedBox(
+                      height: 50,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.green.shade700,
+                          side: BorderSide(color: Colors.green.shade700),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: _addToCart,
+                        child: const Icon(Icons.add_shopping_cart, size: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                   SizedBox(
                     height: 50,
                     child: FilledButton(

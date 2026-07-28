@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../services/database_service.dart';
+import '../../services/cart_service.dart';
 import '../../models/business.dart';
 import '../../models/menu_item.dart';
+import '../../models/cart_item.dart';
 import '../../widgets/menu_item_card.dart';
 import '../../widgets/star_rating.dart';
+import '../../widgets/cart_button.dart';
 import 'menu_item_detail_screen.dart';
+import 'cart_screen.dart';
 
 /// A single restaurant's regular menu — tapping a business from the
 /// Restaurants search list opens this screen. Shows the business's info
@@ -19,7 +23,7 @@ class RestaurantMenuScreen extends StatelessWidget {
     final databaseService = DatabaseService();
 
     return Scaffold(
-      appBar: AppBar(title: Text(business.name)),
+      appBar: AppBar(title: Text(business.name), actions: const [CartButton()]),
       body: Column(
         children: [
           Container(
@@ -33,7 +37,8 @@ class RestaurantMenuScreen extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       backgroundColor: Colors.green.shade100,
-                      child: Icon(Icons.storefront, color: Colors.green.shade700),
+                      child:
+                          Icon(Icons.storefront, color: Colors.green.shade700),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -41,19 +46,23 @@ class RestaurantMenuScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(business.name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
                           Text(business.category,
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey.shade600)),
                         ],
                       ),
                     ),
                     if (business.ratingCount > 0)
                       Row(
                         children: [
-                          StarRating(rating: business.averageRating.round(), size: 14),
+                          StarRating(
+                              rating: business.averageRating.round(), size: 14),
                           const SizedBox(width: 4),
                           Text(business.averageRating.toStringAsFixed(1),
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold)),
                         ],
                       ),
                   ],
@@ -62,11 +71,13 @@ class RestaurantMenuScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade600),
+                      Icon(Icons.location_on_outlined,
+                          size: 14, color: Colors.grey.shade600),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(business.address,
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade700)),
                       ),
                     ],
                   ),
@@ -79,7 +90,8 @@ class RestaurantMenuScreen extends StatelessWidget {
               stream: databaseService.streamBusinessMenuItems(business.id),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text('Failed to load menu: ${snapshot.error}'));
+                  return Center(
+                      child: Text('Failed to load menu: ${snapshot.error}'));
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -106,7 +118,36 @@ class RestaurantMenuScreen extends StatelessWidget {
                       item: item,
                       onTap: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => MenuItemDetailScreen(item: item)),
+                          MaterialPageRoute(
+                              builder: (_) => MenuItemDetailScreen(item: item)),
+                        );
+                      },
+                      onAddToCart: () {
+                        CartService.instance.addItem(CartItem(
+                          sourceType: 'menu',
+                          itemId: item.id,
+                          businessId: item.businessId,
+                          businessName: item.businessName,
+                          name: item.name,
+                          price: item.price,
+                          imageUrl: item.imageUrl,
+                          quantity: 1,
+                          maxQuantity: 999,
+                        ));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Added ${item.name} to cart'),
+                            duration: const Duration(seconds: 2),
+                            action: SnackBarAction(
+                              label: 'View cart',
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => const CartScreen()),
+                                );
+                              },
+                            ),
+                          ),
                         );
                       },
                     );

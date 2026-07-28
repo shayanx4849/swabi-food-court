@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
+import '../../services/cart_service.dart';
 import '../../models/menu_item.dart';
+import '../../models/cart_item.dart';
+import '../../widgets/cart_button.dart';
 import 'qr_display_screen.dart';
+import 'cart_screen.dart';
 
 /// Ordering screen for a regular menu item — no expiry, no stock limit,
 /// customer can order any time. Same Pickup/Delivery choice as surplus
@@ -18,6 +22,7 @@ class MenuItemDetailScreen extends StatefulWidget {
 class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
   final _authService = AuthService();
   final _databaseService = DatabaseService();
+  final _cart = CartService.instance;
   final _addressCtrl = TextEditingController();
 
   int _quantity = 1;
@@ -29,6 +34,35 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
   double get _totalPrice =>
       (widget.item.price * _quantity) +
       (_orderType == 'delivery' ? deliveryFee : 0);
+
+  void _addToCart() {
+    final item = widget.item;
+    _cart.addItem(CartItem(
+      sourceType: 'menu',
+      itemId: item.id,
+      businessId: item.businessId,
+      businessName: item.businessName,
+      name: item.name,
+      price: item.price,
+      imageUrl: item.imageUrl,
+      quantity: _quantity,
+      maxQuantity: 999, // menu items have no stock cap in this MVP
+    ));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Added $_quantity × ${item.name} to cart'),
+        action: SnackBarAction(
+          label: 'View cart',
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CartScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   Future<void> _placeOrder() async {
     if (_orderType == 'delivery' && _addressCtrl.text.trim().isEmpty) {
@@ -80,7 +114,8 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
     final item = widget.item;
 
     return Scaffold(
-      appBar: AppBar(title: Text(item.businessName)),
+      appBar:
+          AppBar(title: Text(item.businessName), actions: const [CartButton()]),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -200,28 +235,51 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Rs. ${_totalPrice.toStringAsFixed(0)}',
                 style:
                     const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              const Spacer(),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                ),
-                onPressed: (item.available && !_ordering) ? _placeOrder : null,
-                child: _ordering
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : Text(item.available ? 'Place order' : 'Unavailable'),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  if (item.available) ...[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.add_shopping_cart, size: 18),
+                        label: const Text('Add to Cart'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.green.shade700,
+                          side: BorderSide(color: Colors.green.shade700),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: _addToCart,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.green.shade700,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed:
+                          (item.available && !_ordering) ? _placeOrder : null,
+                      child: _ordering
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : Text(item.available ? 'Order Now' : 'Unavailable'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

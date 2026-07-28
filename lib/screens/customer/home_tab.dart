@@ -8,6 +8,7 @@ import '../../models/app_user.dart';
 import '../../models/menu_item.dart';
 import '../../widgets/listing_card.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/cart_button.dart';
 import '../../widgets/impact_banner.dart';
 import '../../widgets/menu_item_grid_card.dart';
 import 'listing_detail_screen.dart';
@@ -117,6 +118,7 @@ class _HomeTabState extends State<HomeTab> {
               );
             },
           ),
+          const CartButton(),
           const NotificationBell(),
         ],
       ),

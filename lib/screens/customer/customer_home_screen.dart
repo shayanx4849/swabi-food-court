@@ -5,6 +5,7 @@ import '../../models/listing.dart';
 import '../../models/business.dart';
 import '../../widgets/listing_card.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/cart_button.dart';
 import 'listing_detail_screen.dart';
 
 /// Customer's main discovery screen — a real-time list of active nearby
@@ -44,9 +45,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       final pos = await _locationService.getCurrentLocation();
       if (mounted) {
         setState(() {
-        _lat = pos.latitude;
-        _lng = pos.longitude;
-      });
+          _lat = pos.latitude;
+          _lng = pos.longitude;
+        });
       }
     } catch (e) {
       // ignore: avoid_print
@@ -72,7 +73,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Browse'),
-        actions: const [NotificationBell()],
+        actions: const [CartButton(), NotificationBell()],
       ),
       body: Column(
         children: [
@@ -87,7 +88,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                          const Icon(Icons.error_outline,
+                              color: Colors.red, size: 48),
                           const SizedBox(height: 12),
                           Text('Failed to load listings:\n${snapshot.error}',
                               textAlign: TextAlign.center),
@@ -122,7 +124,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           Text(
                             'Check back later — businesses usually post\nsurplus bags in the evening.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                            style: TextStyle(
+                                color: Colors.grey.shade500, fontSize: 13),
                           ),
                         ],
                       ),
@@ -146,7 +149,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => ListingDetailScreen(listing: listing),
+                            builder: (_) =>
+                                ListingDetailScreen(listing: listing),
                           ),
                         );
                       },

@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Icon(Icons.eco, size: 64, color: Colors.green),
                 const SizedBox(height: 8),
                 const Text(
-                  'BachaoKhana',
+                  'Food Delivery',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
                 ),
@@ -83,7 +83,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   validator: (v) => (v == null || !v.contains('@'))
                       ? 'Enter a valid email'
                       : null,
@@ -102,6 +107,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       onPressed: _togglePasswordVisibility,
                     ),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   validator: (v) =>
                       (v == null || v.length < 6) ? 'Min 6 characters' : null,
@@ -111,6 +118,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 8),
                 FilledButton(
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                   onPressed: _loading ? null : _login,
                   child: _loading
                       ? const SizedBox(

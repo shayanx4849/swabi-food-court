@@ -8,7 +8,18 @@ class MenuItemCard extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? businessActions; // Edit/Delete row, business view only
 
-  const MenuItemCard({super.key, required this.item, this.onTap, this.businessActions});
+  /// When set, shows a small "+" cart icon on the customer-facing card so
+  /// an item can be added straight from the list without opening its
+  /// detail screen — handy for quickly building a multi-item order.
+  final VoidCallback? onAddToCart;
+
+  const MenuItemCard({
+    super.key,
+    required this.item,
+    this.onTap,
+    this.businessActions,
+    this.onAddToCart,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +52,13 @@ class MenuItemCard extends StatelessWidget {
                 fontSize: 13,
               ),
             ),
+            trailing: (onAddToCart != null && item.available)
+                ? IconButton(
+                    icon: Icon(Icons.add_circle, color: Colors.green.shade700),
+                    tooltip: 'Add to cart',
+                    onPressed: onAddToCart,
+                  )
+                : null,
           ),
           if (businessActions != null) ...[
             const Divider(height: 1),

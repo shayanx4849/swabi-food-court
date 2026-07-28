@@ -7,6 +7,8 @@ import '../models/order.dart';
 import '../models/review.dart';
 import '../models/notification_item.dart';
 import '../models/menu_item.dart';
+import '../models/cart_item.dart';
+import 'cart_service.dart';
 
 /// All app data lives in Firebase Realtime Database instead of Cloud
 /// Firestore, since Realtime Database is fully usable on Firebase's free
@@ -81,6 +83,16 @@ class DatabaseService {
 
   Future<void> createListing(FoodListing listing) async {
     await _db.child('listings').child(listing.id).set(listing.toMap());
+  }
+
+  /// Fetches a single listing by id — used by cart checkout to re-validate
+  /// a Surprise Bag's current stock/status right before placing the order,
+  /// since the value cached on the CartItem may be stale by then.
+  Future<FoodListing?> getListingById(String listingId) async {
+    final snap = await _db.child('listings').child(listingId).get();
+    if (!snap.exists || snap.value == null) return null;
+    final map = Map<dynamic, dynamic>.from(snap.value as Map);
+    return FoodListing.fromMap(listingId, map);
   }
 
   Stream<List<FoodListing>> streamActiveListings() {
@@ -318,6 +330,15 @@ class DatabaseService {
 
   Future<void> createMenuItem(MenuItem item) async {
     await _db.child('menu_items').child(item.id).set(item.toMap());
+  }
+
+  /// Fetches a single menu item by id — used by cart checkout to
+  /// re-validate it's still available right before placing the order.
+  Future<MenuItem?> getMenuItemById(String itemId) async {
+    final snap = await _db.child('menu_items').child(itemId).get();
+    if (!snap.exists || snap.value == null) return null;
+    final map = Map<dynamic, dynamic>.from(snap.value as Map);
+    return MenuItem.fromMap(itemId, map);
   }
 
   Future<void> updateMenuItem(MenuItem item) async {
@@ -596,4 +617,101 @@ class DatabaseService {
     }).asBroadcastStream();
   }
 
+  // ---------------- CART CHECKOUT ----------------
+  //
+  // The cart itself (CartService) only lives in memory on the device — it
+  // is never written to the database. Checking out walks the cart and
+  // creates the same FoodOrder documents the existing single-item
+  // reserve/order flows already create (via createOrder / createMenuOrder),
+  // so every other screen (My Orders, business Orders tab, QR pickup scan,
+  // ratings, notifications) works with cart-originated orders exactly as it
+  // already does — nothing downstream needed to change.
+  //
+  // Cart can mix items from multiple businesses in one checkout. Since each
+  // business fulfils pickup/delivery independently, one flat delivery fee
+  // is charged PER BUSINESS (not per item, not per cart) when orderType is
+  // 'delivery' — that per-business fee is then split evenly across that
+  // business's order records purely so each individual order's totalPrice
+  // is still meaningful on its own, matching how MenuItemDetailScreen
+  // already spreads a flat fee across quantity > 1 today.
+  //
+  // Surprise Bag stock is re-checked against the live database immediately
+  // before each unit is ordered (the CartItem's cached maxQuantity can be
+  // stale if someone else bought bags in the meantime), so checkout can
+  // partially succeed. Anything that couldn't be ordered is reported back
+  // via CartCheckoutResult.failedItemNames instead of throwing.
+  Future<CartCheckoutResult> checkoutCart({
+    required List<CartItem> items,
+    required String customerId,
+    required String customerName,
+    required String orderType,
+    String? deliveryAddress,
+    double deliveryFeePerBusiness = 100,
+  }) async {
+    final createdOrders = <FoodOrder>[];
+    final failedItemNames = <String>[];
+
+    final byBusiness = <String, List<CartItem>>{};
+    for (final item in items) {
+      byBusiness.putIfAbsent(item.businessId, () => []).add(item);
+    }
+
+    for (final businessItems in byBusiness.values) {
+      final totalUnits = businessItems.fold<int>(0, (sum, i) => sum + i.quantity);
+      if (totalUnits == 0) continue;
+
+      // Spread this business's one flat delivery fee evenly across every
+      // unit ordered from them in this checkout.
+      final perUnitDeliveryFee =
+          orderType == 'delivery' ? deliveryFeePerBusiness / totalUnits : 0.0;
+
+      for (final cartItem in businessItems) {
+        for (var i = 0; i < cartItem.quantity; i++) {
+          try {
+            if (cartItem.isSurplus) {
+              final listing = await getListingById(cartItem.itemId);
+              if (listing == null ||
+                  listing.status != 'active' ||
+                  listing.quantityAvailable <= 0 ||
+                  listing.isExpired) {
+                failedItemNames.add(cartItem.name);
+                break; // don't keep trying further units of a sold-out bag
+              }
+
+              final order = await createOrder(
+                listing: listing,
+                customerId: customerId,
+                customerName: customerName,
+                orderType: orderType,
+                deliveryAddress: orderType == 'delivery' ? deliveryAddress : null,
+                deliveryFee: perUnitDeliveryFee,
+              );
+              createdOrders.add(order);
+            } else {
+              final menuItem = await getMenuItemById(cartItem.itemId);
+              if (menuItem == null || !menuItem.available) {
+                failedItemNames.add(cartItem.name);
+                break;
+              }
+
+              final order = await createMenuOrder(
+                item: menuItem,
+                customerId: customerId,
+                customerName: customerName,
+                orderType: orderType,
+                deliveryAddress: orderType == 'delivery' ? deliveryAddress : null,
+                deliveryFee: perUnitDeliveryFee,
+              );
+              createdOrders.add(order);
+            }
+          } catch (_) {
+            failedItemNames.add(cartItem.name);
+            break;
+          }
+        }
+      }
+    }
+
+    return CartCheckoutResult(orders: createdOrders, failedItemNames: failedItemNames);
+  }
 }
