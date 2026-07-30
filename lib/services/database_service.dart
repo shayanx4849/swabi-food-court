@@ -59,7 +59,8 @@ class DatabaseService {
       if (data == null) return <Business>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       return map.entries
-          .map((e) => Business.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) =>
+              Business.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
     }).asBroadcastStream();
   }
@@ -72,7 +73,11 @@ class DatabaseService {
   }
 
   Future<void> setBusinessVerified(String businessId, bool verified) async {
-    await _db.child('businesses').child(businessId).child('verified').set(verified);
+    await _db
+        .child('businesses')
+        .child(businessId)
+        .child('verified')
+        .set(verified);
   }
 
   Future<void> deleteBusiness(String businessId) async {
@@ -101,7 +106,8 @@ class DatabaseService {
       if (data == null) return <FoodListing>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       return map.entries
-          .map((e) => FoodListing.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) =>
+              FoodListing.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           // Customers should never see sold-out, cancelled, OR expired
           // listings — even though "expired" isn't a status stored in the
           // database, isExpired is computed live from pickupEnd.
@@ -181,7 +187,8 @@ class DatabaseService {
       if (data == null) return <FoodListing>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final listings = map.entries
-          .map((e) => FoodListing.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) =>
+              FoodListing.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       listings.sort((a, b) => b.pickupStart.compareTo(a.pickupStart));
       return listings;
@@ -276,7 +283,8 @@ class DatabaseService {
     await addNotification(
       uid: data['customerId'],
       title: 'Order delivered',
-      body: 'Your "${data['listingTitle']}" from ${data['businessName']} has been delivered!',
+      body:
+          'Your "${data['listingTitle']}" from ${data['businessName']} has been delivered!',
     );
   }
 
@@ -296,7 +304,8 @@ class DatabaseService {
     await addNotification(
       uid: data['customerId'],
       title: 'Order confirmed',
-      body: '${data['businessName']} has started working on your order "${data['listingTitle']}".',
+      body:
+          '${data['businessName']} has started working on your order "${data['listingTitle']}".',
     );
   }
 
@@ -308,7 +317,9 @@ class DatabaseService {
     if (!snap.exists) return false;
 
     final data = Map<dynamic, dynamic>.from(snap.value as Map);
-    if (data['status'] != 'pending' && data['status'] != 'confirmed') return false;
+    if (data['status'] != 'pending' && data['status'] != 'confirmed') {
+      return false;
+    }
 
     await ref.child('status').set('completed');
     await _incrementImpactStats();
@@ -316,7 +327,8 @@ class DatabaseService {
     await addNotification(
       uid: data['customerId'],
       title: 'Order picked up',
-      body: 'Enjoy your "${data['listingTitle']}" from ${data['businessName']}!',
+      body:
+          'Enjoy your "${data['listingTitle']}" from ${data['businessName']}!',
     );
 
     return true;
@@ -360,7 +372,8 @@ class DatabaseService {
       if (data == null) return <MenuItem>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       return map.entries
-          .map((e) => MenuItem.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) =>
+              MenuItem.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
     }).asBroadcastStream();
   }
@@ -378,7 +391,8 @@ class DatabaseService {
       if (latestItems != null && verifiedBusinessIds != null) {
         controller.add(
           latestItems!
-              .where((i) => i.available && verifiedBusinessIds!.contains(i.businessId))
+              .where((i) =>
+                  i.available && verifiedBusinessIds!.contains(i.businessId))
               .toList(),
         );
       }
@@ -392,7 +406,8 @@ class DatabaseService {
               if (data == null) return <MenuItem>[];
               final map = Map<dynamic, dynamic>.from(data as Map);
               return map.entries
-                  .map((e) => MenuItem.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+                  .map((e) => MenuItem.fromMap(
+                      e.key, Map<dynamic, dynamic>.from(e.value)))
                   .toList();
             });
 
@@ -468,7 +483,8 @@ class DatabaseService {
       if (data == null) return <FoodOrder>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final orders = map.entries
-          .map((e) => FoodOrder.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) =>
+              FoodOrder.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return orders;
@@ -486,7 +502,8 @@ class DatabaseService {
       if (data == null) return <FoodOrder>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final orders = map.entries
-          .map((e) => FoodOrder.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) =>
+              FoodOrder.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return orders;
@@ -542,7 +559,8 @@ class DatabaseService {
       if (data == null) return <Review>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final reviews = map.entries
-          .map((e) => Review.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map(
+              (e) => Review.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return reviews;
@@ -571,7 +589,11 @@ class DatabaseService {
       body: body,
       createdAt: DateTime.now(),
     );
-    await _db.child('notifications').child(uid).child(id).set(notification.toMap());
+    await _db
+        .child('notifications')
+        .child(uid)
+        .child(id)
+        .set(notification.toMap());
   }
 
   Stream<List<NotificationItem>> streamNotifications(String uid) {
@@ -580,7 +602,8 @@ class DatabaseService {
       if (data == null) return <NotificationItem>[];
       final map = Map<dynamic, dynamic>.from(data as Map);
       final items = map.entries
-          .map((e) => NotificationItem.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .map((e) => NotificationItem.fromMap(
+              e.key, Map<dynamic, dynamic>.from(e.value)))
           .toList();
       items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return items;
@@ -608,7 +631,12 @@ class DatabaseService {
 
   /// Emits {mealsRescued, kgCo2Saved} every time the global counter changes.
   Stream<Map<String, num>> streamGlobalImpact() {
-    return _db.child('stats').child('global').child('mealsRescued').onValue.map((event) {
+    return _db
+        .child('stats')
+        .child('global')
+        .child('mealsRescued')
+        .onValue
+        .map((event) {
       final meals = (event.snapshot.value as int?) ?? 0;
       return {
         'mealsRescued': meals,
@@ -657,7 +685,8 @@ class DatabaseService {
     }
 
     for (final businessItems in byBusiness.values) {
-      final totalUnits = businessItems.fold<int>(0, (sum, i) => sum + i.quantity);
+      final totalUnits =
+          businessItems.fold<int>(0, (sum, i) => sum + i.quantity);
       if (totalUnits == 0) continue;
 
       // Spread this business's one flat delivery fee evenly across every
@@ -683,7 +712,8 @@ class DatabaseService {
                 customerId: customerId,
                 customerName: customerName,
                 orderType: orderType,
-                deliveryAddress: orderType == 'delivery' ? deliveryAddress : null,
+                deliveryAddress:
+                    orderType == 'delivery' ? deliveryAddress : null,
                 deliveryFee: perUnitDeliveryFee,
               );
               createdOrders.add(order);
@@ -699,7 +729,8 @@ class DatabaseService {
                 customerId: customerId,
                 customerName: customerName,
                 orderType: orderType,
-                deliveryAddress: orderType == 'delivery' ? deliveryAddress : null,
+                deliveryAddress:
+                    orderType == 'delivery' ? deliveryAddress : null,
                 deliveryFee: perUnitDeliveryFee,
               );
               createdOrders.add(order);
@@ -712,6 +743,171 @@ class DatabaseService {
       }
     }
 
-    return CartCheckoutResult(orders: createdOrders, failedItemNames: failedItemNames);
+    return CartCheckoutResult(
+        orders: createdOrders, failedItemNames: failedItemNames);
+  }
+
+// ---------------- FAVORITES ----------------
+  //
+  // Customers can favorite businesses (not individual listings/menu items)
+  // for quick access later — stored as a simple uid -> {businessId: true}
+  // map, kept separate from the businesses collection itself.
+
+  Future<void> setFavorite(
+      String uid, String businessId, bool isFavorite) async {
+    final ref = _db.child('favorites').child(uid).child(businessId);
+    if (isFavorite) {
+      await ref.set(true);
+    } else {
+      await ref.remove();
+    }
+  }
+
+  /// Live set of business IDs the given user has favorited — cheap to use
+  /// for showing a filled/outline heart icon anywhere in the UI.
+  Stream<Set<String>> streamFavoriteBusinessIds(String uid) {
+    return _db.child('favorites').child(uid).onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <String>{};
+      final map = Map<dynamic, dynamic>.from(data as Map);
+      return map.keys.map((k) => k.toString()).toSet();
+    }).asBroadcastStream();
+  }
+
+  /// Full Business objects for everything the user has favorited, live —
+  /// combines the favorite-IDs stream with the all-businesses stream
+  /// client-side, same join pattern used by streamVerifiedActiveListings.
+  Stream<List<Business>> streamFavoriteBusinesses(String uid) {
+    final controller = StreamController<List<Business>>.broadcast();
+    Set<String>? favoriteIds;
+    List<Business>? allBusinesses;
+    StreamSubscription? favSub;
+    StreamSubscription? businessesSub;
+
+    void emitIfReady() {
+      if (favoriteIds != null && allBusinesses != null) {
+        controller.add(
+          allBusinesses!.where((b) => favoriteIds!.contains(b.id)).toList(),
+        );
+      }
+    }
+
+    controller.onListen = () {
+      favSub = streamFavoriteBusinessIds(uid).listen((ids) {
+        favoriteIds = ids;
+        emitIfReady();
+      }, onError: controller.addError);
+
+      businessesSub = streamAllBusinesses().listen((businesses) {
+        allBusinesses = businesses;
+        emitIfReady();
+      }, onError: controller.addError);
+    };
+
+    controller.onCancel = () {
+      favSub?.cancel();
+      businessesSub?.cancel();
+    };
+
+    return controller.stream;
+  }
+
+  // ---------------- ITEM FAVORITES (product-level) ----------------
+  //
+  // Separate from business favorites above — this lets a customer favorite
+  // a specific product card (a Surprise Bag listing or a regular menu
+  // item), shown as a heart on the card itself. Both listing IDs and menu
+  // item IDs are stored in the same 'itemFavorites' node since UUIDs don't
+  // collide between the two collections.
+
+  Future<void> setItemFavorite(
+      String uid, String itemId, bool isFavorite) async {
+    final ref = _db.child('itemFavorites').child(uid).child(itemId);
+    if (isFavorite) {
+      await ref.set(true);
+    } else {
+      await ref.remove();
+    }
+  }
+
+  /// Live set of item IDs (listings or menu items) the user has favorited —
+  /// used to show a filled/outline heart on any product card.
+  Stream<Set<String>> streamFavoriteItemIds(String uid) {
+    return _db.child('itemFavorites').child(uid).onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <String>{};
+      final map = Map<dynamic, dynamic>.from(data as Map);
+      return map.keys.map((k) => k.toString()).toSet();
+    }).asBroadcastStream();
+  }
+
+  /// Full FoodListing objects the user has favorited that are still active —
+  /// a favorited bag that sold out or expired quietly drops off the list.
+  Stream<List<FoodListing>> streamFavoriteListings(String uid) {
+    final controller = StreamController<List<FoodListing>>.broadcast();
+    Set<String>? favoriteIds;
+    List<FoodListing>? allListings;
+    StreamSubscription? favSub;
+    StreamSubscription? listingsSub;
+
+    void emitIfReady() {
+      if (favoriteIds != null && allListings != null) {
+        controller.add(
+            allListings!.where((l) => favoriteIds!.contains(l.id)).toList());
+      }
+    }
+
+    controller.onListen = () {
+      favSub = streamFavoriteItemIds(uid).listen((ids) {
+        favoriteIds = ids;
+        emitIfReady();
+      }, onError: controller.addError);
+      listingsSub = streamActiveListings().listen((listings) {
+        allListings = listings;
+        emitIfReady();
+      }, onError: controller.addError);
+    };
+
+    controller.onCancel = () {
+      favSub?.cancel();
+      listingsSub?.cancel();
+    };
+
+    return controller.stream;
+  }
+
+  /// Full MenuItem objects the user has favorited (from verified businesses,
+  /// still marked available).
+  Stream<List<MenuItem>> streamFavoriteMenuItems(String uid) {
+    final controller = StreamController<List<MenuItem>>.broadcast();
+    Set<String>? favoriteIds;
+    List<MenuItem>? allItems;
+    StreamSubscription? favSub;
+    StreamSubscription? itemsSub;
+
+    void emitIfReady() {
+      if (favoriteIds != null && allItems != null) {
+        controller
+            .add(allItems!.where((i) => favoriteIds!.contains(i.id)).toList());
+      }
+    }
+
+    controller.onListen = () {
+      favSub = streamFavoriteItemIds(uid).listen((ids) {
+        favoriteIds = ids;
+        emitIfReady();
+      }, onError: controller.addError);
+      itemsSub = streamVerifiedMenuItems().listen((items) {
+        allItems = items;
+        emitIfReady();
+      }, onError: controller.addError);
+    };
+
+    controller.onCancel = () {
+      favSub?.cancel();
+      itemsSub?.cancel();
+    };
+
+    return controller.stream;
   }
 }

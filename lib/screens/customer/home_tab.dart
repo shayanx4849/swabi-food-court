@@ -106,20 +106,10 @@ class _HomeTabState extends State<HomeTab> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('BachaoKhana'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.restaurant_menu),
-            tooltip: 'Order from a restaurant menu',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => const RestaurantsSearchScreen()),
-              );
-            },
-          ),
-          const CartButton(),
-          const NotificationBell(),
+        title: const Text('Swabi Food Delivery'),
+        actions: const [
+          CartButton(),
+          NotificationBell(),
         ],
       ),
       body: StreamBuilder<List<FoodListing>>(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/menu_item.dart';
+import 'item_favorite_button.dart';
 
 /// Compact, photo-forward card for a regular menu item — sized to show
 /// two per screen width in a horizontally-scrolling row on the customer
@@ -21,15 +22,24 @@ class MenuItemGridCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AspectRatio(
-              aspectRatio: 1.15,
-              child: item.imageUrl != null
-                  ? Image.network(
-                      item.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                    )
-                  : _placeholder(),
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1.15,
+                  child: item.imageUrl != null
+                      ? Image.network(
+                          item.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _placeholder(),
+                        )
+                      : _placeholder(),
+                ),
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: ItemFavoriteButton(itemId: item.id),
+                ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
@@ -40,7 +50,8 @@ class MenuItemGridCard extends StatelessWidget {
                     item.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13.5),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -71,7 +82,8 @@ class MenuItemGridCard extends StatelessWidget {
     return Container(
       color: Colors.orange.shade50,
       alignment: Alignment.center,
-      child: Icon(Icons.restaurant_menu, size: 32, color: Colors.orange.shade300),
+      child:
+          Icon(Icons.restaurant_menu, size: 32, color: Colors.orange.shade300),
     );
   }
 }

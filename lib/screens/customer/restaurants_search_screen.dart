@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/database_service.dart';
 import '../../models/business.dart';
 import '../../widgets/star_rating.dart';
+import '../../widgets/favorite_button.dart';
 import 'restaurant_menu_screen.dart';
 
 /// Search/browse screen listing every verified business on the platform —
@@ -12,8 +13,7 @@ class RestaurantsSearchScreen extends StatefulWidget {
   const RestaurantsSearchScreen({super.key});
 
   @override
-  State<RestaurantsSearchScreen> createState() =>
-      _RestaurantsSearchScreenState();
+  State<RestaurantsSearchScreen> createState() => _RestaurantsSearchScreenState();
 }
 
 class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
@@ -78,8 +78,7 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                 return ChoiceChip(
                   label: Text(cat['label']!),
                   selected: selected,
-                  onSelected: (_) =>
-                      setState(() => _categoryFilter = cat['key']!),
+                  onSelected: (_) => setState(() => _categoryFilter = cat['key']!),
                   selectedColor: Colors.green.shade700,
                   labelStyle: TextStyle(
                     color: selected ? Colors.white : Colors.black87,
@@ -95,8 +94,7 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
               stream: _databaseService.streamAllBusinesses(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(
-                      child: Text('Failed to load: ${snapshot.error}'));
+                  return Center(child: Text('Failed to load: ${snapshot.error}'));
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -123,34 +121,33 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: Colors.green.shade50,
-                          child: Icon(Icons.storefront,
-                              color: Colors.green.shade700),
+                          child: Icon(Icons.storefront, color: Colors.green.shade700),
                         ),
-                        title: Text(business.name,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w600)),
+                        title: Text(business.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Row(
                           children: [
                             Text(business.category,
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey.shade600)),
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                             if (business.ratingCount > 0) ...[
                               const SizedBox(width: 8),
-                              StarRating(
-                                  rating: business.averageRating.round(),
-                                  size: 12),
+                              StarRating(rating: business.averageRating.round(), size: 12),
                               const SizedBox(width: 3),
                               Text(business.averageRating.toStringAsFixed(1),
                                   style: const TextStyle(fontSize: 12)),
                             ],
                           ],
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FavoriteButton(businessId: business.id),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  RestaurantMenuScreen(business: business),
+                              builder: (_) => RestaurantMenuScreen(business: business),
                             ),
                           );
                         },

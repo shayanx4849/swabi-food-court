@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/listing.dart';
+import 'item_favorite_button.dart';
 
 /// Rich, visual card for a surplus food listing — large photo on top (like
 /// Too Good To Go / Karma's "Surprise Bag" cards), a discount-percent badge,
@@ -12,6 +13,7 @@ class ListingCard extends StatelessWidget {
   final Widget? businessActions; // optional Edit/Delete row, business view only
   final double? rating; // business's average rating, if known
   final int? ratingCount;
+  final bool showFavorite; // hide on the business's own "My Listings" view
 
   const ListingCard({
     super.key,
@@ -21,6 +23,7 @@ class ListingCard extends StatelessWidget {
     this.businessActions,
     this.rating,
     this.ratingCount,
+    this.showFavorite = true,
   });
 
   @override
@@ -103,7 +106,7 @@ class ListingCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
+                        color: Colors.black.withOpacity(0.6),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -119,6 +122,11 @@ class ListingCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: ItemFavoriteButton(itemId: listing.id),
+                ),
               ],
             ),
 
