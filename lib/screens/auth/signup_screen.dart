@@ -5,6 +5,7 @@ import '../../services/database_service.dart';
 import '../../models/business.dart';
 import '../business/business_home_screen.dart';
 import '../customer/customer_shell_screen.dart';
+import '../shared/location_picker_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -21,16 +22,32 @@ class _SignupScreenState extends State<SignupScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController(); // used only if role == business
-
   String _role = 'customer';
   String _businessCategory = 'restaurant';
   bool _loading = false;
   bool _obscurePassword = true;
   String? _error;
 
+  // Business location — set ONLY via the map picker (LocationPickerScreen),
+  // never typed. That's what guarantees a business can't be registered
+  // with a fake or nonexistent address: the pin has to sit on an actual
+  // point on the map, and lat/lng always match whatever address gets
+  // shown, because the address IS derived from the pin.
+  PickedLocation? _pickedLocation;
+
+  Future<void> _pickLocation() async {
+    final result = await Navigator.of(context).push<PickedLocation>(
+      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+    );
+    if (result != null) setState(() => _pickedLocation = result);
+  }
+
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_role == 'business' && _pickedLocation == null) {
+      setState(() => _error = 'Please pin your business location on the map.');
+      return;
+    }
     FocusScope.of(context).unfocus();
     setState(() {
       _loading = true;
@@ -45,20 +62,17 @@ class _SignupScreenState extends State<SignupScreen> {
         role: _role,
       );
 
-      // If registering as a business, also create a Business profile.
-      // NOTE: lat/lng are placeholders here (0,0) — in the full app,
-      // capture these from the device's location or an address picker
-      // during onboarding, then update the business document.
       if (_role == 'business') {
+        final location = _pickedLocation!;
         await _databaseService.createBusiness(
           Business(
             id: const Uuid().v4(),
             ownerId: user.uid,
             name: _nameCtrl.text.trim(),
             category: _businessCategory,
-            address: _addressCtrl.text.trim(),
-            lat: 0,
-            lng: 0,
+            address: location.address,
+            lat: location.lat,
+            lng: location.lng,
             verified: false, // admin approves later
           ),
         );
@@ -157,13 +171,43 @@ class _SignupScreenState extends State<SignupScreen> {
                         setState(() => _businessCategory = v ?? 'restaurant'),
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _addressCtrl,
-                    decoration:
-                        const InputDecoration(labelText: 'Business address'),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Required' : null,
+                  OutlinedButton.icon(
+                    icon: Icon(_pickedLocation == null
+                        ? Icons.map_outlined
+                        : Icons.edit_location_alt),
+                    label: Text(_pickedLocation == null
+                        ? 'Pin business location on map'
+                        : 'Change pinned location'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: Colors.green.shade700,
+                      side: BorderSide(color: Colors.green.shade700),
+                    ),
+                    onPressed: _pickLocation,
                   ),
+                  if (_pickedLocation != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.place, size: 16, color: Colors.green.shade700),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _pickedLocation!.address,
+                              style: TextStyle(fontSize: 12.5, color: Colors.green.shade900),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 20),
                 if (_error != null)

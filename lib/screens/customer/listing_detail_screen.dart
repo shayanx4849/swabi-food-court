@@ -9,6 +9,7 @@ import '../../models/business.dart';
 import '../../models/cart_item.dart';
 import '../../widgets/star_rating.dart';
 import '../../widgets/cart_button.dart';
+import '../../widgets/mini_map_view.dart';
 import 'qr_display_screen.dart';
 import 'cart_screen.dart';
 
@@ -399,6 +400,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             ),
                           ],
                         ),
+                        if (_business!.lat != 0 || _business!.lng != 0) ...[
+                          const SizedBox(height: 10),
+                          MiniMapView(lat: _business!.lat, lng: _business!.lng, height: 130),
+                        ],
                         const SizedBox(height: 22),
                       ],
 

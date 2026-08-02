@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../services/database_service.dart';
+import '../../services/location_service.dart';
 import '../../models/business.dart';
 import '../../widgets/star_rating.dart';
 import '../../widgets/favorite_button.dart';
@@ -18,9 +21,17 @@ class RestaurantsSearchScreen extends StatefulWidget {
 
 class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
   final _databaseService = DatabaseService();
+  final _locationService = LocationService();
   final _searchCtrl = TextEditingController();
+  final _mapController = MapController();
+
   String _query = '';
   String _categoryFilter = 'all';
+  bool _showMap = false;
+  LatLng? _myLocation;
+  Business? _selectedBusiness;
+
+  static const _fallbackCenter = LatLng(34.1200, 72.4700); // Swabi, KP
 
   static const _categories = [
     {'key': 'all', 'label': 'All'},
@@ -28,6 +39,22 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
     {'key': 'bakery', 'label': 'Bakery'},
     {'key': 'mart', 'label': 'Groceries'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyLocation();
+  }
+
+  Future<void> _loadMyLocation() async {
+    try {
+      final pos = await _locationService.getCurrentLocation();
+      if (mounted) setState(() => _myLocation = LatLng(pos.latitude, pos.longitude));
+    } catch (_) {
+      // No GPS fix — map just falls back to a default center, same as
+      // elsewhere in the app when location is unavailable.
+    }
+  }
 
   List<Business> _filter(List<Business> businesses) {
     var result = businesses.where((b) => b.verified).toList();
@@ -44,7 +71,19 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Restaurants')),
+      appBar: AppBar(
+        title: const Text('Restaurants'),
+        actions: [
+          IconButton(
+            icon: Icon(_showMap ? Icons.list : Icons.map_outlined),
+            tooltip: _showMap ? 'List view' : 'Map view',
+            onPressed: () => setState(() {
+              _showMap = !_showMap;
+              _selectedBusiness = null;
+            }),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -78,7 +117,10 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                 return ChoiceChip(
                   label: Text(cat['label']!),
                   selected: selected,
-                  onSelected: (_) => setState(() => _categoryFilter = cat['key']!),
+                  onSelected: (_) => setState(() {
+                    _categoryFilter = cat['key']!;
+                    _selectedBusiness = null;
+                  }),
                   selectedColor: Colors.green.shade700,
                   labelStyle: TextStyle(
                     color: selected ? Colors.white : Colors.black87,
@@ -111,55 +153,167 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                     ),
                   );
                 }
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: businesses.length,
-                  itemBuilder: (context, i) {
-                    final business = businesses[i];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.green.shade50,
-                          child: Icon(Icons.storefront, color: Colors.green.shade700),
-                        ),
-                        title: Text(business.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Row(
-                          children: [
-                            Text(business.category,
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                            if (business.ratingCount > 0) ...[
-                              const SizedBox(width: 8),
-                              StarRating(rating: business.averageRating.round(), size: 12),
-                              const SizedBox(width: 3),
-                              Text(business.averageRating.toStringAsFixed(1),
-                                  style: const TextStyle(fontSize: 12)),
-                            ],
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FavoriteButton(businessId: business.id),
-                            const Icon(Icons.chevron_right),
-                          ],
-                        ),
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => RestaurantMenuScreen(business: business),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                );
+                return _showMap ? _mapView(businesses) : _listView(businesses);
               },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _listView(List<Business> businesses) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      itemCount: businesses.length,
+      itemBuilder: (context, i) {
+        final business = businesses[i];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.green.shade50,
+              child: Icon(Icons.storefront, color: Colors.green.shade700),
+            ),
+            title: Text(business.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Row(
+              children: [
+                Text(business.category,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                if (business.ratingCount > 0) ...[
+                  const SizedBox(width: 8),
+                  StarRating(rating: business.averageRating.round(), size: 12),
+                  const SizedBox(width: 3),
+                  Text(business.averageRating.toStringAsFixed(1),
+                      style: const TextStyle(fontSize: 12)),
+                ],
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FavoriteButton(businessId: business.id),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+            onTap: () => _openMenu(business),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _mapView(List<Business> businesses) {
+    // Businesses that were never geo-pinned sit at (0,0) — filter those
+    // out of the map (they'd otherwise all stack in the Gulf of Guinea)
+    // but they still show up fine in List view.
+    final pinned = businesses.where((b) => b.lat != 0 || b.lng != 0).toList();
+    final center = _myLocation ??
+        (pinned.isNotEmpty ? LatLng(pinned.first.lat, pinned.first.lng) : _fallbackCenter);
+
+    return Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: center,
+            initialZoom: 13,
+            onTap: (_, __) => setState(() => _selectedBusiness = null),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+              subdomains: const ['a', 'b', 'c', 'd'],
+              userAgentPackageName: 'com.bachaokhana.app',
+            ),
+            const RichAttributionWidget(
+              attributions: [
+                TextSourceAttribution('OpenStreetMap contributors'),
+                TextSourceAttribution('CARTO'),
+              ],
+            ),
+            MarkerLayer(markers: [
+              if (_myLocation != null)
+                Marker(
+                  point: _myLocation!,
+                  width: 20,
+                  height: 20,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 3),
+                    ),
+                  ),
+                ),
+              for (final business in pinned)
+                Marker(
+                  point: LatLng(business.lat, business.lng),
+                  width: 42,
+                  height: 42,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedBusiness = business),
+                    child: Icon(
+                      Icons.location_pin,
+                      size: 42,
+                      color: _selectedBusiness?.id == business.id
+                          ? Colors.green.shade900
+                          : Colors.green.shade700,
+                    ),
+                  ),
+                ),
+            ]),
+          ],
+        ),
+        if (pinned.length < businesses.length)
+          Positioned(
+            top: 10,
+            left: 12,
+            right: 12,
+            child: Card(
+              color: Colors.orange.shade50,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text(
+                  '${businesses.length - pinned.length} business(es) without a pinned location aren\'t shown on the map.',
+                  style: TextStyle(fontSize: 11.5, color: Colors.orange.shade900),
+                ),
+              ),
+            ),
+          ),
+        if (_selectedBusiness != null)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 16,
+            child: _businessPreviewCard(_selectedBusiness!),
+          ),
+      ],
+    );
+  }
+
+  Widget _businessPreviewCard(Business business) {
+    return Card(
+      elevation: 4,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.green.shade50,
+          child: Icon(Icons.storefront, color: Colors.green.shade700),
+        ),
+        title: Text(business.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(business.address, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
+          onPressed: () => _openMenu(business),
+          child: const Text('View menu'),
+        ),
+      ),
+    );
+  }
+
+  void _openMenu(Business business) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => RestaurantMenuScreen(business: business)),
     );
   }
 }

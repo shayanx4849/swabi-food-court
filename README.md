@@ -7,14 +7,14 @@ waste in Pakistan. This is the working codebase for the FYP proposal
 
 ## Tech Stack (No Credit/Debit Card Required)
 
-| Purpose | Technology | Why |
-|---|---|---|
-| Frontend | Flutter (Android & iOS) | — |
-| Auth | Firebase Authentication | Free on Spark plan, no card |
-| **Database** | **Firebase Realtime Database** | Free on Spark plan, no card — used instead of Cloud Firestore, which now requires a billing account (Blaze plan) even for free-tier usage |
-| **Image storage** | **Cloudinary** | Free tier, no card required — used instead of Firebase Storage |
-| Location | Geolocator + Google Maps API | — |
-| QR codes | `qr_flutter` / `mobile_scanner` | — |
+| Purpose           | Technology                      | Why                                                                                                                                       |
+| ----------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend          | Flutter (Android & iOS)         | —                                                                                                                                         |
+| Auth              | Firebase Authentication         | Free on Spark plan, no card                                                                                                               |
+| **Database**      | **Firebase Realtime Database**  | Free on Spark plan, no card — used instead of Cloud Firestore, which now requires a billing account (Blaze plan) even for free-tier usage |
+| **Image storage** | **Cloudinary**                  | Free tier, no card required — used instead of Firebase Storage                                                                            |
+| Location          | Geolocator + Google Maps API    | —                                                                                                                                         |
+| QR codes          | `qr_flutter` / `mobile_scanner` | —                                                                                                                                         |
 
 > **Why not Firestore / Firebase Storage?** Google now requires a linked
 > billing account (a card) to enable Cloud Firestore and Firebase Storage on
@@ -22,17 +22,18 @@ waste in Pakistan. This is the working codebase for the FYP proposal
 > Database and Cloudinary both offer generous free tiers with **no card
 > required at all**, so this codebase uses them instead.
 
----
+<!-- Cludinary Name and Password  -->
+<!-- dg9vz83qu  bachaokhana  -->
 
 ## 1. Prerequisites
 
-| Tool | Purpose | Link |
-|---|---|---|
-| Flutter SDK (3.x+) | Build the app | https://docs.flutter.dev/get-started/install |
-| Android Studio | Android emulator + SDK | https://developer.android.com/studio |
-| Node.js (18+) | Needed for the Firebase CLI | https://nodejs.org |
-| Git | Version control | https://git-scm.com |
-| A Google account | To create the Firebase project | — |
+| Tool               | Purpose                        | Link                                         |
+| ------------------ | ------------------------------ | -------------------------------------------- |
+| Flutter SDK (3.x+) | Build the app                  | https://docs.flutter.dev/get-started/install |
+| Android Studio     | Android emulator + SDK         | https://developer.android.com/studio         |
+| Node.js (18+)      | Needed for the Firebase CLI    | https://nodejs.org                           |
+| Git                | Version control                | https://git-scm.com                          |
+| A Google account   | To create the Firebase project | —                                            |
 
 Verify Flutter is installed correctly:
 
@@ -150,7 +151,7 @@ listing is published without an image).
 2. Create an API key under **Credentials**.
    (Note: enabling Google Maps APIs on Google Cloud may itself prompt for
    billing on some accounts. If you hit that and don't have a card, you can
-   skip this step for now — the app's distance *sorting* in
+   skip this step for now — the app's distance _sorting_ in
    `location_service.dart` uses raw lat/lng math and doesn't strictly
    require the Maps SDK unless you later add a visual map view.)
 3. If you do set it up, add the key to:
@@ -264,17 +265,17 @@ Output: `build/app/outputs/flutter-apk/app-release.apk`
 
 ## 9. Common Issues
 
-| Problem | Fix |
-|---|---|
-| `flutter doctor` shows Android license errors | `flutter doctor --android-licenses`, accept all |
-| App crashes on launch with a Firebase error | Re-run `flutterfire configure`; confirm `lib/firebase_options.dart` no longer says `REPLACE_ME` |
-| "This API method requires billing" error | You (or someone) clicked into **Cloud Firestore** instead of **Realtime Database**. This project only needs Realtime Database — go to the Firebase Console, search "Realtime Database", and create that instead. |
-| Customer feed is empty | Confirm the listing's `status` is `"active"`; check Realtime Database rules aren't blocking reads |
-| Distance sorting looks wrong | The business's `lat`/`lng` is still `0,0` — update it manually (see step 6 above) |
-| Photo doesn't upload | Confirm `cloudName` and `uploadPreset` in `cloudinary_service.dart` are correct, and that the preset's Signing Mode is set to **Unsigned** |
-| QR scanner shows a black screen | Grant camera permission; on Android, add camera permission to `AndroidManifest.xml` if missing |
-| Gradle build fails | `flutter clean && flutter pub get`, then retry |
-| iOS build fails | `cd ios && pod install && cd ..` |
+| Problem                                       | Fix                                                                                                                                                                                                              |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `flutter doctor` shows Android license errors | `flutter doctor --android-licenses`, accept all                                                                                                                                                                  |
+| App crashes on launch with a Firebase error   | Re-run `flutterfire configure`; confirm `lib/firebase_options.dart` no longer says `REPLACE_ME`                                                                                                                  |
+| "This API method requires billing" error      | You (or someone) clicked into **Cloud Firestore** instead of **Realtime Database**. This project only needs Realtime Database — go to the Firebase Console, search "Realtime Database", and create that instead. |
+| Customer feed is empty                        | Confirm the listing's `status` is `"active"`; check Realtime Database rules aren't blocking reads                                                                                                                |
+| Distance sorting looks wrong                  | The business's `lat`/`lng` is still `0,0` — update it manually (see step 6 above)                                                                                                                                |
+| Photo doesn't upload                          | Confirm `cloudName` and `uploadPreset` in `cloudinary_service.dart` are correct, and that the preset's Signing Mode is set to **Unsigned**                                                                       |
+| QR scanner shows a black screen               | Grant camera permission; on Android, add camera permission to `AndroidManifest.xml` if missing                                                                                                                   |
+| Gradle build fails                            | `flutter clean && flutter pub get`, then retry                                                                                                                                                                   |
+| iOS build fails                               | `cd ios && pod install && cd ..`                                                                                                                                                                                 |
 
 ---
 

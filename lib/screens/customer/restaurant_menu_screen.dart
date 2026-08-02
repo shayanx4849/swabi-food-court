@@ -5,6 +5,7 @@ import '../../models/menu_item.dart';
 import '../../widgets/menu_item_card.dart';
 import '../../widgets/star_rating.dart';
 import '../../widgets/favorite_button.dart';
+import '../../widgets/mini_map_view.dart';
 import 'menu_item_detail_screen.dart';
 
 /// A single restaurant's regular menu — tapping a business from the
@@ -74,6 +75,10 @@ class RestaurantMenuScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                ],
+                if (business.lat != 0 || business.lng != 0) ...[
+                  const SizedBox(height: 10),
+                  MiniMapView(lat: business.lat, lng: business.lng, height: 110),
                 ],
               ],
             ),
