@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../models/business.dart';
@@ -15,6 +16,7 @@ import 'add_listing_screen.dart';
 import 'add_menu_item_screen.dart';
 import 'edit_listing_screen.dart';
 import 'qr_scan_screen.dart';
+import 'delivery_run_screen.dart';
 
 /// Home screen for a business user: two tabs — "My listings" and "Orders",
 /// plus a floating button to create a new surplus food listing and an
@@ -88,7 +90,7 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
     }
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Builder(
         builder: (context) {
           final tabController = DefaultTabController.of(context);
@@ -151,10 +153,13 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
             ),
           ],
           bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: 'Surprise Bags'),
               Tab(text: 'Menu'),
               Tab(text: 'Orders'),
+              Tab(text: 'Stats'),
             ],
           ),
         ),
@@ -225,6 +230,11 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
                   ),
                   _BusinessOrdersTab(
                     key: ValueKey('orders-${_business!.id}'),
+                    databaseService: _databaseService,
+                    businessId: _business!.id,
+                  ),
+                  _BusinessStatsTab(
+                    key: ValueKey('stats-${_business!.id}'),
                     databaseService: _databaseService,
                     businessId: _business!.id,
                   ),
@@ -529,9 +539,9 @@ class _BusinessOrdersTabState extends State<_BusinessOrdersTab>
             final showDeliverButton =
                 order.isDelivery && (order.status == 'pending' || order.status == 'confirmed');
 
-            Widget? footer;
+            Widget? actionButton;
             if (showAcceptButton) {
-              footer = FilledButton.icon(
+              actionButton = FilledButton.icon(
                 icon: const Icon(Icons.check, size: 18),
                 label: const Text('Accept order — start preparing'),
                 style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
@@ -540,12 +550,32 @@ class _BusinessOrdersTabState extends State<_BusinessOrdersTab>
                 },
               );
             } else if (showDeliverButton) {
-              footer = OutlinedButton.icon(
-                icon: const Icon(Icons.delivery_dining, size: 18),
-                label: const Text('Mark as delivered'),
-                onPressed: () async {
-                  await widget.databaseService.markAsDelivered(order.id);
+              actionButton = OutlinedButton.icon(
+                icon: const Icon(Icons.qr_code_scanner, size: 18),
+                label: const Text('Deliver & scan'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => DeliveryRunScreen(order: order)),
+                  );
                 },
+              );
+            }
+
+            // For delivery orders, give the business a way to actually
+            // reach and find the customer — many addresses here don't have
+            // house numbers, so a phone number and a map pin matter more
+            // than the typed address text.
+            final showDeliveryContact =
+                order.isDelivery && (order.customerPhone != null || order.hasDeliveryPin);
+            Widget? footer;
+            if (showDeliveryContact || actionButton != null) {
+              footer = Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showDeliveryContact) _DeliveryContactRow(order: order),
+                  if (showDeliveryContact && actionButton != null) const SizedBox(height: 8),
+                  if (actionButton != null) actionButton,
+                ],
               );
             }
 
@@ -553,6 +583,240 @@ class _BusinessOrdersTabState extends State<_BusinessOrdersTab>
           },
         );
       },
+    );
+  }
+}
+
+/// Shown on a delivery order's card in the business's Orders tab — lets
+/// them call the customer directly and open the pinned drop-off location
+/// in whatever map app is installed, which matters a lot here since most
+/// addresses don't have house numbers to navigate by otherwise.
+class _DeliveryContactRow extends StatelessWidget {
+  final FoodOrder order;
+  const _DeliveryContactRow({required this.order});
+
+  Future<void> _call(BuildContext context) async {
+    final phone = order.customerPhone;
+    if (phone == null || phone.isEmpty) return;
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (!await launchUrl(uri)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the phone dialer.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _navigate(BuildContext context) async {
+    if (!order.hasDeliveryPin) return;
+    final uri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=${order.deliveryLat},${order.deliveryLng}');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open maps.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (order.customerPhone != null && order.customerPhone!.isNotEmpty)
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.call, size: 16),
+              label: Text(order.customerPhone!, overflow: TextOverflow.ellipsis),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.green.shade700,
+                side: BorderSide(color: Colors.green.shade700),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              onPressed: () => _call(context),
+            ),
+          ),
+        if (order.customerPhone != null &&
+            order.customerPhone!.isNotEmpty &&
+            order.hasDeliveryPin)
+          const SizedBox(width: 8),
+        if (order.hasDeliveryPin)
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.map_outlined, size: 16),
+              label: const Text('Navigate'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.blue.shade700,
+                side: BorderSide(color: Colors.blue.shade700),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              onPressed: () => _navigate(context),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// One period's worth of aggregated stats — orders count, earnings, and a
+/// pickup/delivery breakdown, all derived from completed orders only
+/// (pending/cancelled orders don't count as "done" business).
+class _PeriodStats {
+  int pickupCount = 0;
+  int deliveryCount = 0;
+  double earnings = 0;
+
+  int get orderCount => pickupCount + deliveryCount;
+
+  void add(FoodOrder order) {
+    if (order.isDelivery) {
+      deliveryCount++;
+    } else {
+      pickupCount++;
+    }
+    earnings += order.totalPrice;
+  }
+}
+
+/// "Stats" tab — how many orders got completed today / this week / this
+/// month / all-time, split by pickup vs delivery, plus earnings. Computed
+/// entirely from the same completed-orders stream the Orders tab already
+/// uses, so no new database reads or schema are needed.
+class _BusinessStatsTab extends StatefulWidget {
+  final DatabaseService databaseService;
+  final String businessId;
+
+  const _BusinessStatsTab({
+    super.key,
+    required this.databaseService,
+    required this.businessId,
+  });
+
+  @override
+  State<_BusinessStatsTab> createState() => _BusinessStatsTabState();
+}
+
+class _BusinessStatsTabState extends State<_BusinessStatsTab>
+    with AutomaticKeepAliveClientMixin {
+  late final Stream<List<FoodOrder>> _stream =
+      widget.databaseService.streamBusinessOrders(widget.businessId);
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // required by AutomaticKeepAliveClientMixin
+    return StreamBuilder<List<FoodOrder>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Failed to load stats:\n${snapshot.error}',
+                  textAlign: TextAlign.center),
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final now = DateTime.now();
+        final startOfToday = DateTime(now.year, now.month, now.day);
+        final startOfWeek = startOfToday.subtract(Duration(days: now.weekday - 1)); // Monday
+        final startOfMonth = DateTime(now.year, now.month, 1);
+
+        final today = _PeriodStats();
+        final week = _PeriodStats();
+        final month = _PeriodStats();
+        final total = _PeriodStats();
+
+        for (final order in snapshot.data!) {
+          if (order.status != 'completed') continue;
+          total.add(order);
+          if (!order.createdAt.isBefore(startOfMonth)) month.add(order);
+          if (!order.createdAt.isBefore(startOfWeek)) week.add(order);
+          if (!order.createdAt.isBefore(startOfToday)) today.add(order);
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _periodCard('Today', today),
+            _periodCard('This Week', week),
+            _periodCard('This Month', month),
+            _periodCard('All Time', total),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _periodCard(String label, _PeriodStats stats) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${stats.orderCount}',
+                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                      Text('orders completed',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Rs. ${stats.earnings.toStringAsFixed(0)}',
+                          style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade700)),
+                      Text('earnings',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (stats.orderCount > 0) ...[
+              const SizedBox(height: 14),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.storefront, size: 15, color: Colors.grey.shade600),
+                  const SizedBox(width: 6),
+                  Text('${stats.pickupCount} pickup',
+                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700)),
+                  const SizedBox(width: 16),
+                  Icon(Icons.delivery_dining, size: 15, color: Colors.grey.shade600),
+                  const SizedBox(width: 6),
+                  Text('${stats.deliveryCount} delivery',
+                      style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700)),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

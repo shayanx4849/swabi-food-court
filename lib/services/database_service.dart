@@ -227,6 +227,9 @@ class DatabaseService {
     String orderType = 'pickup',
     String? deliveryAddress,
     double deliveryFee = 0,
+    String? customerPhone,
+    double? deliveryLat,
+    double? deliveryLng,
   }) async {
     final orderId = _uuid.v4();
     final order = FoodOrder(
@@ -244,6 +247,9 @@ class DatabaseService {
       orderType: orderType,
       deliveryAddress: orderType == 'delivery' ? deliveryAddress : null,
       deliveryFee: orderType == 'delivery' ? deliveryFee : 0,
+      customerPhone: orderType == 'delivery' ? customerPhone : null,
+      deliveryLat: orderType == 'delivery' ? deliveryLat : null,
+      deliveryLng: orderType == 'delivery' ? deliveryLng : null,
     );
 
     await _db.child('orders').child(orderId).set(order.toMap());
@@ -437,6 +443,9 @@ class DatabaseService {
     String orderType = 'pickup',
     String? deliveryAddress,
     double deliveryFee = 0,
+    String? customerPhone,
+    double? deliveryLat,
+    double? deliveryLng,
   }) async {
     final orderId = _uuid.v4();
     final order = FoodOrder(
@@ -454,6 +463,9 @@ class DatabaseService {
       orderType: orderType,
       deliveryAddress: orderType == 'delivery' ? deliveryAddress : null,
       deliveryFee: orderType == 'delivery' ? deliveryFee : 0,
+      customerPhone: orderType == 'delivery' ? customerPhone : null,
+      deliveryLat: orderType == 'delivery' ? deliveryLat : null,
+      deliveryLng: orderType == 'delivery' ? deliveryLng : null,
       orderSource: 'menu',
       menuItemId: item.id,
     );
@@ -675,6 +687,9 @@ class DatabaseService {
     required String orderType,
     String? deliveryAddress,
     double deliveryFeePerBusiness = 100,
+    String? customerPhone,
+    double? deliveryLat,
+    double? deliveryLng,
   }) async {
     final createdOrders = <FoodOrder>[];
     final failedItemNames = <String>[];
@@ -715,6 +730,9 @@ class DatabaseService {
                 deliveryAddress:
                     orderType == 'delivery' ? deliveryAddress : null,
                 deliveryFee: perUnitDeliveryFee,
+                customerPhone: customerPhone,
+                deliveryLat: deliveryLat,
+                deliveryLng: deliveryLng,
               );
               createdOrders.add(order);
             } else {
@@ -732,6 +750,9 @@ class DatabaseService {
                 deliveryAddress:
                     orderType == 'delivery' ? deliveryAddress : null,
                 deliveryFee: perUnitDeliveryFee,
+                customerPhone: customerPhone,
+                deliveryLat: deliveryLat,
+                deliveryLng: deliveryLng,
               );
               createdOrders.add(order);
             }

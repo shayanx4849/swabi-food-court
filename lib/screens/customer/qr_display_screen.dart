@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/order.dart';
 
-/// Shown right after a successful reservation.
-///
-/// For pickup orders, this displays the QR code the customer presents at
-/// the store for staff to scan. For delivery orders there's no in-person
-/// handoff to scan, so this instead confirms the delivery address and
-/// explains that the business will contact the customer to arrange
-/// drop-off (this MVP has no rider assignment or live tracking).
+/// Shown right after a successful reservation. Always displays the QR
+/// code — for pickup orders it's scanned at the store counter, and for
+/// delivery orders it's scanned by whoever shows up with the order, so the
+/// customer has a simple way to confirm it's really their order (useful
+/// since many delivery addresses here don't have house numbers to double
+/// check against).
 class QrDisplayScreen extends StatelessWidget {
   final FoodOrder order;
   const QrDisplayScreen({super.key, required this.order});
@@ -67,33 +66,27 @@ class QrDisplayScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'The business will contact you to arrange drop-off. '
-                'There is no live delivery tracking yet — check "My Orders" '
-                'for status updates.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
-              ),
-            ] else ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: QrImageView(
-                  data: order.qrCode,
-                  size: 220,
-                ),
-              ),
               const SizedBox(height: 20),
-              const Text(
-                'Show this code at the store to collect your order.',
-                textAlign: TextAlign.center,
-              ),
             ],
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: QrImageView(
+                data: order.qrCode,
+                size: 220,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              order.isDelivery
+                  ? 'Show this code to the delivery person when they arrive.'
+                  : 'Show this code at the store to collect your order.',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),

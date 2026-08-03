@@ -13,8 +13,8 @@ import 'package:http/http.dart' as http;
 ///   3. Settings -> Upload -> Add upload preset -> set Signing Mode to
 ///      "Unsigned" -> copy its name into [uploadPreset] below.
 class CloudinaryService {
-  static const String cloudName = 'dg9vz83qu';
-  static const String uploadPreset = 'bachaokhana';
+  static const String cloudName = 'YOUR_CLOUD_NAME';
+  static const String uploadPreset = 'YOUR_UNSIGNED_UPLOAD_PRESET';
 
   /// Uploads a single image file and returns its public HTTPS URL,
   /// or null if the upload failed. Prints the exact failure reason to the

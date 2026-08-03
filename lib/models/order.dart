@@ -20,6 +20,14 @@ class FoodOrder {
   final String? deliveryAddress; // only set when orderType == 'delivery'
   final double deliveryFee;
 
+  // Delivery contact info — captured at checkout so the business (or their
+  // delivery person) can actually reach the customer and find them, since
+  // most addresses here don't have house numbers to go by. Only set when
+  // orderType == 'delivery'.
+  final String? customerPhone;
+  final double? deliveryLat;
+  final double? deliveryLng;
+
   /// "surplus" (default) — a discounted Surprise Bag from FoodListing — or
   /// "menu" — a regular, always-available item ordered from a business's
   /// normal menu (no expiry/pickup-window, no stock limit). Menu orders go
@@ -45,9 +53,14 @@ class FoodOrder {
     this.orderType = 'pickup',
     this.deliveryAddress,
     this.deliveryFee = 0,
+    this.customerPhone,
+    this.deliveryLat,
+    this.deliveryLng,
     this.orderSource = 'surplus',
     this.menuItemId,
   });
+
+  bool get hasDeliveryPin => deliveryLat != null && deliveryLng != null;
 
   bool get isDelivery => orderType == 'delivery';
   bool get isMenuOrder => orderSource == 'menu';
@@ -69,6 +82,9 @@ class FoodOrder {
       'orderType': orderType,
       'deliveryAddress': deliveryAddress,
       'deliveryFee': deliveryFee,
+      'customerPhone': customerPhone,
+      'deliveryLat': deliveryLat,
+      'deliveryLng': deliveryLng,
       'orderSource': orderSource,
       'menuItemId': menuItemId,
     };
@@ -91,6 +107,9 @@ class FoodOrder {
       orderType: map['orderType'] ?? 'pickup',
       deliveryAddress: map['deliveryAddress'],
       deliveryFee: (map['deliveryFee'] ?? 0).toDouble(),
+      customerPhone: map['customerPhone'],
+      deliveryLat: map['deliveryLat'] == null ? null : (map['deliveryLat'] as num).toDouble(),
+      deliveryLng: map['deliveryLng'] == null ? null : (map['deliveryLng'] as num).toDouble(),
       orderSource: map['orderSource'] ?? 'surplus',
       menuItemId: map['menuItemId'],
     );

@@ -82,19 +82,37 @@ class _HomeTabState extends State<HomeTab> {
 
   List<FoodListing> _filterAndSort(List<FoodListing> listings) {
     var result = listings;
+
     if (_selectedCategory != 'all') {
-      result = result.where((l) {
-        final business = _businessesById[l.businessId];
-        return business?.category == _selectedCategory;
+      result = result.where((listing) {
+        final business = _businessesById[listing.businessId];
+
+        if (business == null) return false;
+
+        return business.category == _selectedCategory;
       }).toList();
     }
+
     if (_lat != null && _lng != null) {
-      result = [...result]..sort((a, b) {
-          final da = _locationService.distanceInKm(_lat!, _lng!, a.lat, a.lng);
-          final db = _locationService.distanceInKm(_lat!, _lng!, b.lat, b.lng);
-          return da.compareTo(db);
-        });
+      result.sort((a, b) {
+        final da = _locationService.distanceInKm(
+          _lat!,
+          _lng!,
+          a.lat,
+          a.lng,
+        );
+
+        final db = _locationService.distanceInKm(
+          _lat!,
+          _lng!,
+          b.lat,
+          b.lng,
+        );
+
+        return da.compareTo(db);
+      });
     }
+
     return result;
   }
 
@@ -277,7 +295,7 @@ class _HomeTabState extends State<HomeTab> {
                 )
               else
                 SizedBox(
-                  height: 300,
+                  height: 290,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -289,7 +307,7 @@ class _HomeTabState extends State<HomeTab> {
                           ? '${_locationService.distanceInKm(_lat!, _lng!, listing.lat, listing.lng).toStringAsFixed(1)} km'
                           : null;
                       return SizedBox(
-                        width: 260,
+                        width: 280,
                         child: ListingCard(
                           listing: listing,
                           distanceLabel: distanceLabel,
@@ -340,8 +358,21 @@ class _HomeTabState extends State<HomeTab> {
                       child: Center(child: CircularProgressIndicator()),
                     );
                   }
-                  final menuItems =
-                      menuSnapshot.data!.where((i) => i.available).toList();
+                  var menuItems = menuSnapshot.data!
+                      .where((item) => item.available)
+                      .toList();
+
+                  if (_selectedCategory != 'all') {
+                    menuItems = menuItems.where((item) {
+                      final business = _businessesById[item.businessId];
+
+                      if (business == null) {
+                        return false;
+                      }
+
+                      return business.category == _selectedCategory;
+                    }).toList();
+                  }
                   if (menuItems.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(

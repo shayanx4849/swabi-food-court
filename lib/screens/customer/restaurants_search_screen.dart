@@ -65,7 +65,36 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
       final q = _query.trim().toLowerCase();
       result = result.where((b) => b.name.toLowerCase().contains(q)).toList();
     }
+
+    // Nearest-first once we know where the customer actually is — pinless
+    // businesses (0,0) sink to the bottom since a "0 km" reading for them
+    // would be misleading.
+    if (_myLocation != null) {
+      result.sort((a, b) {
+        final aPinned = a.lat != 0 || a.lng != 0;
+        final bPinned = b.lat != 0 || b.lng != 0;
+        if (aPinned != bPinned) return aPinned ? -1 : 1;
+        if (!aPinned) return 0;
+        return _distanceKm(a)!.compareTo(_distanceKm(b)!);
+      });
+    }
+
     return result;
+  }
+
+  /// Straight-line distance from the customer to [business], or null if
+  /// either point is unknown.
+  double? _distanceKm(Business business) {
+    if (_myLocation == null) return null;
+    if (business.lat == 0 && business.lng == 0) return null;
+    return _locationService.distanceInKm(
+      _myLocation!.latitude, _myLocation!.longitude, business.lat, business.lng);
+  }
+
+  String? _distanceLabel(Business business) {
+    final km = _distanceKm(business);
+    if (km == null) return null;
+    return km < 1 ? '${(km * 1000).round()} m away' : '${km.toStringAsFixed(1)} km away';
   }
 
   @override
@@ -187,6 +216,13 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                   Text(business.averageRating.toStringAsFixed(1),
                       style: const TextStyle(fontSize: 12)),
                 ],
+                if (_distanceLabel(business) != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.near_me, size: 11, color: Colors.green.shade700),
+                  const SizedBox(width: 2),
+                  Text(_distanceLabel(business)!,
+                      style: TextStyle(fontSize: 11.5, color: Colors.green.shade700, fontWeight: FontWeight.w600)),
+                ],
               ],
             ),
             trailing: Row(
@@ -301,7 +337,13 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
           child: Icon(Icons.storefront, color: Colors.green.shade700),
         ),
         title: Text(business.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(business.address, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          _distanceLabel(business) != null
+              ? '${_distanceLabel(business)} \u2022 ${business.address}'
+              : business.address,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: FilledButton(
           style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
           onPressed: () => _openMenu(business),

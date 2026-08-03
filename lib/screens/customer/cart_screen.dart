@@ -4,6 +4,7 @@ import '../../services/database_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/cart_service.dart';
 import '../../models/cart_item.dart';
+import '../shared/location_picker_screen.dart';
 import 'cart_checkout_summary_screen.dart';
 
 /// Lets the customer review everything they've added to the cart — possibly
@@ -21,17 +22,29 @@ class _CartScreenState extends State<CartScreen> {
   final _cart = CartService.instance;
   final _authService = AuthService();
   final _databaseService = DatabaseService();
-  final _addressCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
 
   String _orderType = 'pickup';
   bool _checkingOut = false;
+
+  // Delivery destination — set ONLY via the map picker, same reasoning as
+  // business signup: most addresses here don't have house numbers, so a
+  // real GPS pin (not a typed guess) is what actually gets someone there.
+  PickedLocation? _pickedLocation;
 
   static const double deliveryFeePerBusiness = 100;
 
   @override
   void dispose() {
-    _addressCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDeliveryLocation() async {
+    final result = await Navigator.of(context).push<PickedLocation>(
+      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+    );
+    if (result != null) setState(() => _pickedLocation = result);
   }
 
   double get _deliveryTotal => _orderType == 'delivery'
@@ -41,11 +54,19 @@ class _CartScreenState extends State<CartScreen> {
   double get _grandTotal => _cart.subtotal + _deliveryTotal;
 
   Future<void> _checkout() async {
-    if (_orderType == 'delivery' && _addressCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a delivery address.')),
-      );
-      return;
+    if (_orderType == 'delivery') {
+      if (_pickedLocation == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please pin your delivery location on the map.')),
+        );
+        return;
+      }
+      if (_phoneCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a phone number so the business can reach you.')),
+        );
+        return;
+      }
     }
 
     setState(() => _checkingOut = true);
@@ -59,9 +80,11 @@ class _CartScreenState extends State<CartScreen> {
         customerId: firebaseUser.uid,
         customerName: profile?.name ?? 'Customer',
         orderType: _orderType,
-        deliveryAddress:
-            _orderType == 'delivery' ? _addressCtrl.text.trim() : null,
+        deliveryAddress: _orderType == 'delivery' ? _pickedLocation!.address : null,
         deliveryFeePerBusiness: deliveryFeePerBusiness,
+        customerPhone: _orderType == 'delivery' ? _phoneCtrl.text.trim() : null,
+        deliveryLat: _orderType == 'delivery' ? _pickedLocation!.lat : null,
+        deliveryLng: _orderType == 'delivery' ? _pickedLocation!.lng : null,
       );
 
       // Schedule pickup reminders for whichever surplus/pickup orders were
@@ -369,16 +392,62 @@ class _CartScreenState extends State<CartScreen> {
             ),
             if (_orderType == 'delivery') ...[
               const SizedBox(height: 10),
+              OutlinedButton.icon(
+                icon: Icon(_pickedLocation == null
+                    ? Icons.map_outlined
+                    : Icons.edit_location_alt),
+                label: Text(_pickedLocation == null
+                    ? 'Pin delivery location on map'
+                    : 'Change delivery location'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  foregroundColor: Colors.green.shade700,
+                  side: BorderSide(color: Colors.green.shade700),
+                ),
+                onPressed: _pickDeliveryLocation,
+              ),
+              if (_pickedLocation != null) ...[
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.place, size: 15, color: Colors.green.shade700),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _pickedLocation!.address,
+                          style: TextStyle(fontSize: 12, color: Colors.green.shade900),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
               TextField(
-                controller: _addressCtrl,
-                maxLines: 2,
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  labelText: 'Delivery address',
-                  hintText: 'House/street, area, city',
+                  labelText: 'Phone number',
+                  hintText: '03xx-xxxxxxx',
+                  prefixIcon: const Icon(Icons.call_outlined, size: 20),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                   isDense: true,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'So the business can reach you if they can\'t find the pin.',
+                style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 6),
               Text(

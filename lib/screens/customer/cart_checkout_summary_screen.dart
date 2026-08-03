@@ -147,15 +147,14 @@ class CartCheckoutSummaryScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (!order.isDelivery)
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: QrImageView(data: order.qrCode, size: 56),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(6),
             ),
+            child: QrImageView(data: order.qrCode, size: 56),
+          ),
         ],
       ),
     );
