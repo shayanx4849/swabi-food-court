@@ -117,6 +117,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 TextFormField(
                   controller: _nameCtrl,
                   decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                     labelText:
                         _role == 'business' ? 'Business name' : 'Full name',
                   ),
@@ -127,7 +129,11 @@ class _SignupScreenState extends State<SignupScreen> {
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      )),
                   validator: (v) => (v == null || !v.contains('@'))
                       ? 'Enter a valid email'
                       : null,
@@ -150,6 +156,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         });
                       },
                     ),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   validator: (v) =>
                       (v == null || v.length < 6) ? 'Min 6 characters' : null,
@@ -158,7 +166,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: _businessCategory,
-                    decoration: const InputDecoration(labelText: 'Category'),
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
                     items: const [
                       DropdownMenuItem(
                           value: 'restaurant',
@@ -196,12 +208,14 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.place, size: 16, color: Colors.green.shade700),
+                          Icon(Icons.place,
+                              size: 16, color: Colors.green.shade700),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _pickedLocation!.address,
-                              style: TextStyle(fontSize: 12.5, color: Colors.green.shade900),
+                              style: TextStyle(
+                                  fontSize: 12.5, color: Colors.green.shade900),
                             ),
                           ),
                         ],

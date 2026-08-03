@@ -104,13 +104,16 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     if (_orderType == 'delivery') {
       if (_pickedLocation == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please pin your delivery location on the map.')),
+          const SnackBar(
+              content: Text('Please pin your delivery location on the map.')),
         );
         return;
       }
       if (_phoneCtrl.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a phone number so the business can reach you.')),
+          const SnackBar(
+              content: Text(
+                  'Please enter a phone number so the business can reach you.')),
         );
         return;
       }
@@ -126,7 +129,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         customerId: firebaseUser.uid,
         customerName: profile?.name ?? 'Customer',
         orderType: _orderType,
-        deliveryAddress: _orderType == 'delivery' ? _pickedLocation!.address : null,
+        deliveryAddress:
+            _orderType == 'delivery' ? _pickedLocation!.address : null,
         deliveryFee: _orderType == 'delivery' ? deliveryFee : 0,
         customerPhone: _orderType == 'delivery' ? _phoneCtrl.text.trim() : null,
         deliveryLat: _orderType == 'delivery' ? _pickedLocation!.lat : null,
@@ -383,7 +387,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                 ? 'Pin delivery location on map'
                                 : 'Change delivery location'),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 50),
                               foregroundColor: Colors.green.shade700,
                               side: BorderSide(color: Colors.green.shade700),
                             ),
@@ -400,12 +405,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.place, size: 15, color: Colors.green.shade700),
+                                  Icon(Icons.place,
+                                      size: 15, color: Colors.green.shade700),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
                                       _pickedLocation!.address,
-                                      style: TextStyle(fontSize: 12, color: Colors.green.shade900),
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.green.shade900),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -421,7 +429,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             decoration: InputDecoration(
                               labelText: 'Phone number',
                               hintText: '03xx-xxxxxxx',
-                              prefixIcon: const Icon(Icons.call_outlined, size: 20),
+                              prefixIcon:
+                                  const Icon(Icons.call_outlined, size: 20),
                               border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10)),
                               isDense: true,
@@ -471,7 +480,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         ),
                         if (_business!.lat != 0 || _business!.lng != 0) ...[
                           const SizedBox(height: 10),
-                          MiniMapView(lat: _business!.lat, lng: _business!.lng, height: 130),
+                          MiniMapView(
+                              lat: _business!.lat,
+                              lng: _business!.lng,
+                              height: 130),
                         ],
                         const SizedBox(height: 22),
                       ],
@@ -648,7 +660,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   strokeWidth: 2, color: Colors.white),
                             )
                           : Text(
-                              soldOut ? 'Sold out' : 'Reserve this bag',
+                              soldOut ? 'Sold out' : 'Reserve bag',
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),

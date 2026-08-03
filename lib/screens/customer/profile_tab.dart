@@ -48,9 +48,13 @@ class _ProfileTabState extends State<ProfileTab> {
                   radius: 28,
                   backgroundColor: Colors.green.shade100,
                   child: Text(
-                    (_profile?.name.isNotEmpty == true) ? _profile!.name[0].toUpperCase() : '?',
+                    (_profile?.name.isNotEmpty == true)
+                        ? _profile!.name[0].toUpperCase()
+                        : '?',
                     style: TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade800),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -60,11 +64,13 @@ class _ProfileTabState extends State<ProfileTab> {
                     children: [
                       Text(
                         _profile?.name ?? '...',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         _profile?.email ?? '',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.grey.shade600),
                       ),
                     ],
                   ),
@@ -107,6 +113,67 @@ class _ProfileTabState extends State<ProfileTab> {
             iconColor: Colors.red,
             labelColor: Colors.red,
             onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  backgroundColor: Colors.green.shade50,
+                  titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                  contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  actionsPadding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  title: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.logout, color: Colors.green.shade800),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Log Out',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  content: const Text('Are you sure you want to log out?'),
+                  actions: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade800,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        backgroundColor: Colors.transparent,
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('No'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Yes'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm != true) return; // user cancelled
               await _authService.signOut();
               if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(
@@ -130,15 +197,21 @@ class _ProfileTabState extends State<ProfileTab> {
     Color? labelColor,
   }) {
     return ListTile(
-      leading: Icon(icon, color: enabled ? (iconColor ?? Colors.grey.shade700) : Colors.grey.shade400),
+      leading: Icon(icon,
+          color: enabled
+              ? (iconColor ?? Colors.grey.shade700)
+              : Colors.grey.shade400),
       title: Text(
         label,
         style: TextStyle(
-          color: enabled ? (labelColor ?? Colors.black87) : Colors.grey.shade400,
+          color:
+              enabled ? (labelColor ?? Colors.black87) : Colors.grey.shade400,
           fontWeight: FontWeight.w500,
         ),
       ),
-      subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12)) : null,
+      subtitle: subtitle != null
+          ? Text(subtitle, style: const TextStyle(fontSize: 12))
+          : null,
       trailing: enabled ? const Icon(Icons.chevron_right, size: 20) : null,
       onTap: enabled ? onTap : null,
     );
