@@ -31,6 +31,7 @@ class _AddMenuItemScreenState extends State<AddMenuItemScreen> {
   String? _existingImageUrl;
   bool _available = true;
   bool _saving = false;
+  String _category = kMenuItemCategories.last; // 'Other' — matches MenuItem's default
 
   bool get _isEditing => widget.existingItem != null;
 
@@ -43,6 +44,7 @@ class _AddMenuItemScreenState extends State<AddMenuItemScreen> {
     _priceCtrl = TextEditingController(text: e != null ? e.price.toStringAsFixed(0) : '');
     _existingImageUrl = e?.imageUrl;
     _available = e?.available ?? true;
+    _category = e?.category ?? kMenuItemCategories.last;
   }
 
   Future<void> _pickImage() async {
@@ -76,6 +78,7 @@ class _AddMenuItemScreenState extends State<AddMenuItemScreen> {
         price: double.parse(_priceCtrl.text.trim()),
         imageUrl: imageUrl,
         available: _available,
+        category: _category,
       );
 
       if (_isEditing) {
@@ -145,6 +148,15 @@ class _AddMenuItemScreenState extends State<AddMenuItemScreen> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Price (Rs.)'),
                 validator: (v) => (v == null || double.tryParse(v) == null) ? 'Enter a number' : null,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _category,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: kMenuItemCategories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) => setState(() => _category = v ?? kMenuItemCategories.last),
               ),
               const SizedBox(height: 8),
               SwitchListTile(

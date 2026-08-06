@@ -9,6 +9,7 @@ class Business {
   final bool verified;
   final double ratingSum; // sum of all star ratings received
   final int ratingCount; // number of reviews received
+  final bool isOpen; // business toggles this themselves, default true
 
   Business({
     required this.id,
@@ -21,6 +22,7 @@ class Business {
     this.verified = false,
     this.ratingSum = 0,
     this.ratingCount = 0,
+    this.isOpen = true,
   });
 
   double get averageRating => ratingCount == 0 ? 0 : ratingSum / ratingCount;
@@ -36,6 +38,7 @@ class Business {
       'verified': verified,
       'ratingSum': ratingSum,
       'ratingCount': ratingCount,
+      'isOpen': isOpen,
     };
   }
 
@@ -51,6 +54,7 @@ class Business {
       verified: map['verified'] ?? false,
       ratingSum: (map['ratingSum'] ?? 0).toDouble(),
       ratingCount: map['ratingCount'] ?? 0,
+      isOpen: map['isOpen'] ?? true,
     );
   }
 }

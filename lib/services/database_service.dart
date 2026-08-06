@@ -8,6 +8,7 @@ import '../models/review.dart';
 import '../models/notification_item.dart';
 import '../models/menu_item.dart';
 import '../models/cart_item.dart';
+import '../models/deal.dart';
 import 'cart_service.dart';
 
 /// All app data lives in Firebase Realtime Database instead of Cloud
@@ -78,6 +79,14 @@ class DatabaseService {
         .child(businessId)
         .child('verified')
         .set(verified);
+  }
+
+  /// Business toggles this themselves from their own app — whether they're
+  /// currently accepting regular menu orders. Deliberately separate from
+  /// [setBusinessVerified] (admin-only) and from Surprise Bag listings,
+  /// which already have their own time-based expiry and aren't affected.
+  Future<void> setBusinessOpen(String businessId, bool isOpen) async {
+    await _db.child('businesses').child(businessId).child('isOpen').set(isOpen);
   }
 
   Future<void> deleteBusiness(String businessId) async {
@@ -391,14 +400,14 @@ class DatabaseService {
   Stream<List<MenuItem>> streamVerifiedMenuItems({String? businessId}) {
     final controller = StreamController<List<MenuItem>>.broadcast();
     List<MenuItem>? latestItems;
-    Set<String>? verifiedBusinessIds;
+    Set<String>? eligibleBusinessIds; // verified AND currently open
 
     void emitIfReady() {
-      if (latestItems != null && verifiedBusinessIds != null) {
+      if (latestItems != null && eligibleBusinessIds != null) {
         controller.add(
           latestItems!
               .where((i) =>
-                  i.available && verifiedBusinessIds!.contains(i.businessId))
+                  i.available && eligibleBusinessIds!.contains(i.businessId))
               .toList(),
         );
       }
@@ -423,8 +432,10 @@ class DatabaseService {
       }, onError: controller.addError);
 
       streamAllBusinesses().listen((businesses) {
-        verifiedBusinessIds =
-            businesses.where((b) => b.verified).map((b) => b.id).toSet();
+        eligibleBusinessIds = businesses
+            .where((b) => b.verified && b.isOpen)
+            .map((b) => b.id)
+            .toSet();
         emitIfReady();
       }, onError: controller.addError);
     };
@@ -446,6 +457,11 @@ class DatabaseService {
     String? customerPhone,
     double? deliveryLat,
     double? deliveryLng,
+    // Set when ordering through a business Deal — uses the deal's
+    // discounted price instead of the menu item's normal price, and tags
+    // the order so it's traceable back to that deal.
+    double? priceOverride,
+    String? dealId,
   }) async {
     final orderId = _uuid.v4();
     final order = FoodOrder(
@@ -456,7 +472,7 @@ class DatabaseService {
       listingTitle: item.name,
       customerId: customerId,
       customerName: customerName,
-      price: item.price,
+      price: priceOverride ?? item.price,
       qrCode: orderId,
       status: 'pending',
       createdAt: DateTime.now(),
@@ -468,6 +484,7 @@ class DatabaseService {
       deliveryLng: orderType == 'delivery' ? deliveryLng : null,
       orderSource: 'menu',
       menuItemId: item.id,
+      dealId: dealId,
     );
 
     await _db.child('orders').child(orderId).set(order.toMap());
@@ -520,6 +537,99 @@ class DatabaseService {
       orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return orders;
     }).asBroadcastStream();
+  }
+
+  // ---------------- DEALS ----------------
+  //
+  // Business-managed promotional discounts on existing menu items —
+  // distinct from the surplus-listing (Surprise Bag) system above. A deal
+  // has no forced pickup window; the business sets its own expiry date and
+  // can edit/pause/delete it manually at any time via the business app.
+
+  Future<void> createDeal(Deal deal) async {
+    await _db.child('deals').child(deal.id).set(deal.toMap());
+  }
+
+  Future<void> updateDeal(Deal deal) async {
+    await _db.child('deals').child(deal.id).set(deal.toMap());
+  }
+
+  Future<void> deleteDeal(String dealId) async {
+    await _db.child('deals').child(dealId).remove();
+  }
+
+  Future<void> setDealActive(String dealId, bool active) async {
+    await _db.child('deals').child(dealId).child('active').set(active);
+  }
+
+  Future<Deal?> getDealById(String dealId) async {
+    final snap = await _db.child('deals').child(dealId).get();
+    if (!snap.exists || snap.value == null) return null;
+    final map = Map<dynamic, dynamic>.from(snap.value as Map);
+    return Deal.fromMap(dealId, map);
+  }
+
+  /// All deals belonging to one business — including expired/paused ones,
+  /// since the business needs to see and manage those too.
+  Stream<List<Deal>> streamBusinessDeals(String businessId) {
+    return _db
+        .child('deals')
+        .orderByChild('businessId')
+        .equalTo(businessId)
+        .onValue
+        .map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <Deal>[];
+      final map = Map<dynamic, dynamic>.from(data as Map);
+      final deals = map.entries
+          .map((e) => Deal.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .toList();
+      deals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return deals;
+    }).asBroadcastStream();
+  }
+
+  /// Every currently-live deal (active, not expired, from a verified
+  /// business) across the whole platform — powers the Home tab's "Deals
+  /// near you" carousel and any cross-restaurant deals browsing.
+  Stream<List<Deal>> streamActiveDeals() {
+    final controller = StreamController<List<Deal>>.broadcast();
+    List<Deal>? latestDeals;
+    Set<String>? eligibleBusinessIds; // verified AND currently open
+
+    void emitIfReady() {
+      if (latestDeals != null && eligibleBusinessIds != null) {
+        controller.add(
+          latestDeals!
+              .where((d) => d.isLive && eligibleBusinessIds!.contains(d.businessId))
+              .toList(),
+        );
+      }
+    }
+
+    controller.onListen = () {
+      _db.child('deals').onValue.map((event) {
+        final data = event.snapshot.value;
+        if (data == null) return <Deal>[];
+        final map = Map<dynamic, dynamic>.from(data as Map);
+        return map.entries
+            .map((e) => Deal.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+            .toList();
+      }).listen((deals) {
+        latestDeals = deals;
+        emitIfReady();
+      }, onError: controller.addError);
+
+      streamAllBusinesses().listen((businesses) {
+        eligibleBusinessIds = businesses
+            .where((b) => b.verified && b.isOpen)
+            .map((b) => b.id)
+            .toSet();
+        emitIfReady();
+      }, onError: controller.addError);
+    };
+
+    return controller.stream;
   }
 
   // ---------------- REVIEWS & RATINGS ----------------

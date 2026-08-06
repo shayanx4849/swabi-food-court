@@ -12,9 +12,12 @@ import '../../widgets/order_card.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/star_rating.dart';
 import '../auth/login_screen.dart';
+import '../../models/deal.dart';
+import '../../widgets/deal_card.dart';
 import 'add_listing_screen.dart';
 import 'add_menu_item_screen.dart';
 import 'edit_listing_screen.dart';
+import 'add_edit_deal_screen.dart';
 import 'qr_scan_screen.dart';
 import 'delivery_run_screen.dart';
 
@@ -90,7 +93,7 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
     }
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Builder(
         builder: (context) {
           final tabController = DefaultTabController.of(context);
@@ -130,26 +133,73 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
             ],
           ),
           actions: [
-            const NotificationBell(),
-            IconButton(
-              icon: const Icon(Icons.qr_code_scanner),
-              tooltip: 'Scan pickup QR',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const QrScanScreen()),
-                );
-              },
+            Transform.scale(
+              scale: 0.8,
+              child: Switch(
+                value: _business!.isOpen,
+                activeTrackColor: Colors.greenAccent.shade100,
+                onChanged: (value) async {
+                  // Update locally first so the switch feels instant —
+                  // _business is loaded once at startup, not a live
+                  // stream, so the DB write alone wouldn't reflect back
+                  // into this screen's own state.
+                  final updated = Business(
+                    id: _business!.id,
+                    ownerId: _business!.ownerId,
+                    name: _business!.name,
+                    category: _business!.category,
+                    address: _business!.address,
+                    lat: _business!.lat,
+                    lng: _business!.lng,
+                    verified: _business!.verified,
+                    ratingSum: _business!.ratingSum,
+                    ratingCount: _business!.ratingCount,
+                    isOpen: value,
+                  );
+                  setState(() => _business = updated);
+                  await _databaseService.setBusinessOpen(_business!.id, value);
+                },
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () async {
-                await _authService.signOut();
-                if (!mounted) return;
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
+            const NotificationBell(),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) async {
+                if (value == 'scan') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const QrScanScreen()),
+                  );
+                } else if (value == 'logout') {
+                  await _authService.signOut();
+                  if (!mounted) return;
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
               },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'scan',
+                  child: Row(
+                    children: [
+                      Icon(Icons.qr_code_scanner, size: 20),
+                      SizedBox(width: 10),
+                      Text('Scan pickup QR'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, size: 20),
+                      SizedBox(width: 10),
+                      Text('Logout'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
           bottom: const TabBar(
@@ -158,6 +208,7 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
             tabs: [
               Tab(text: 'Surprise Bags'),
               Tab(text: 'Menu'),
+              Tab(text: 'Deals'),
               Tab(text: 'Orders'),
               Tab(text: 'Stats'),
             ],
@@ -189,7 +240,22 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
                       );
                     },
                   )
-                : null,
+                : currentTabIndex == 2
+                    ? FloatingActionButton.extended(
+                        icon: const Icon(Icons.add),
+                        label: const Text('New deal'),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => AddEditDealScreen(
+                                businessId: _business!.id,
+                                businessName: _business!.name,
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : null,
         body: Column(
           children: [
             if (!_business!.verified)
@@ -225,6 +291,11 @@ class _BusinessHomeScreenState extends State<BusinessHomeScreen> {
                   ),
                   _BusinessMenuTab(
                     key: ValueKey('menu-${_business!.id}'),
+                    databaseService: _databaseService,
+                    business: _business!,
+                  ),
+                  _BusinessDealsTab(
+                    key: ValueKey('deals-${_business!.id}'),
                     databaseService: _databaseService,
                     business: _business!,
                   ),
@@ -817,6 +888,113 @@ class _BusinessStatsTabState extends State<_BusinessStatsTab>
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Deals" tab content — lists the business's own deals (including
+/// expired/paused ones, so they can manage those too) with edit/pause/
+/// delete controls.
+class _BusinessDealsTab extends StatefulWidget {
+  final DatabaseService databaseService;
+  final Business business;
+
+  const _BusinessDealsTab({
+    super.key,
+    required this.databaseService,
+    required this.business,
+  });
+
+  @override
+  State<_BusinessDealsTab> createState() => _BusinessDealsTabState();
+}
+
+class _BusinessDealsTabState extends State<_BusinessDealsTab>
+    with AutomaticKeepAliveClientMixin {
+  late final Stream<List<Deal>> _stream =
+      widget.databaseService.streamBusinessDeals(widget.business.id);
+
+  @override
+  bool get wantKeepAlive => true;
+
+  Future<void> _confirmDelete(BuildContext context, Deal deal) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete this deal?'),
+        content: Text('"${deal.menuItemName}" deal will be permanently removed.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await widget.databaseService.deleteDeal(deal.id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return StreamBuilder<List<Deal>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Failed to load deals:\n${snapshot.error}', textAlign: TextAlign.center),
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final deals = snapshot.data!;
+        if (deals.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'No deals yet. Tap + to put a discount on one of your menu '
+                'items — you pick the discount and how long it runs, and can '
+                'edit or delete it anytime.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: deals.length,
+          itemBuilder: (context, i) {
+            final deal = deals[i];
+            return DealCard(
+              deal: deal,
+              onEdit: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AddEditDealScreen(
+                      businessId: widget.business.id,
+                      businessName: widget.business.name,
+                      existingDeal: deal,
+                    ),
+                  ),
+                );
+              },
+              onToggleActive: () {
+                widget.databaseService.setDealActive(deal.id, !deal.active);
+              },
+              onDelete: () => _confirmDelete(context, deal),
+            );
+          },
+        );
+      },
     );
   }
 }
