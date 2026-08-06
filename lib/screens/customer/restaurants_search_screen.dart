@@ -13,10 +13,21 @@ import 'restaurant_menu_screen.dart';
 /// entry point for ordering from a business's everyday menu, separate from
 /// browsing discounted Surprise Bag deals.
 class RestaurantsSearchScreen extends StatefulWidget {
-  const RestaurantsSearchScreen({super.key});
+  /// Pre-fills the search box — used when arriving here from the Home
+  /// tab's search bar so results show immediately instead of an empty list.
+  final String? initialQuery;
+
+  /// Pre-selects a category chip — used when arriving here from the Home
+  /// tab's category row, so tapping "Bakery" on Home shows every bakery
+  /// on the platform, not just the couple featured on Home.
+  final String? initialCategory;
+
+  const RestaurantsSearchScreen(
+      {super.key, this.initialQuery, this.initialCategory});
 
   @override
-  State<RestaurantsSearchScreen> createState() => _RestaurantsSearchScreenState();
+  State<RestaurantsSearchScreen> createState() =>
+      _RestaurantsSearchScreenState();
 }
 
 class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
@@ -43,13 +54,21 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
+      _query = widget.initialQuery!;
+      _searchCtrl.text = widget.initialQuery!;
+    }
+    if (widget.initialCategory != null) {
+      _categoryFilter = widget.initialCategory!;
+    }
     _loadMyLocation();
   }
 
   Future<void> _loadMyLocation() async {
     try {
       final pos = await _locationService.getCurrentLocation();
-      if (mounted) setState(() => _myLocation = LatLng(pos.latitude, pos.longitude));
+      if (mounted)
+        setState(() => _myLocation = LatLng(pos.latitude, pos.longitude));
     } catch (_) {
       // No GPS fix — map just falls back to a default center, same as
       // elsewhere in the app when location is unavailable.
@@ -87,14 +106,16 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
   double? _distanceKm(Business business) {
     if (_myLocation == null) return null;
     if (business.lat == 0 && business.lng == 0) return null;
-    return _locationService.distanceInKm(
-      _myLocation!.latitude, _myLocation!.longitude, business.lat, business.lng);
+    return _locationService.distanceInKm(_myLocation!.latitude,
+        _myLocation!.longitude, business.lat, business.lng);
   }
 
   String? _distanceLabel(Business business) {
     final km = _distanceKm(business);
     if (km == null) return null;
-    return km < 1 ? '${(km * 1000).round()} m away' : '${km.toStringAsFixed(1)} km away';
+    return km < 1
+        ? '${(km * 1000).round()} m away'
+        : '${km.toStringAsFixed(1)} km away';
   }
 
   @override
@@ -124,7 +145,7 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                 hintText: 'Search for restaurants or stores',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: const Color.fromARGB(66, 117, 117, 117),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -165,7 +186,8 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
               stream: _databaseService.streamAllBusinesses(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text('Failed to load: ${snapshot.error}'));
+                  return Center(
+                      child: Text('Failed to load: ${snapshot.error}'));
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -204,11 +226,36 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
               backgroundColor: Colors.green.shade50,
               child: Icon(Icons.storefront, color: Colors.green.shade700),
             ),
-            title: Text(business.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+            title: Row(
+              children: [
+                Flexible(
+                  child: Text(business.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis),
+                ),
+                if (!business.isOpen) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text('Closed',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.red.shade700,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ],
+            ),
             subtitle: Row(
               children: [
                 Text(business.category,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 if (business.ratingCount > 0) ...[
                   const SizedBox(width: 8),
                   StarRating(rating: business.averageRating.round(), size: 12),
@@ -221,7 +268,10 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                   Icon(Icons.near_me, size: 11, color: Colors.green.shade700),
                   const SizedBox(width: 2),
                   Text(_distanceLabel(business)!,
-                      style: TextStyle(fontSize: 11.5, color: Colors.green.shade700, fontWeight: FontWeight.w600)),
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w600)),
                 ],
               ],
             ),
@@ -245,7 +295,9 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
     // but they still show up fine in List view.
     final pinned = businesses.where((b) => b.lat != 0 || b.lng != 0).toList();
     final center = _myLocation ??
-        (pinned.isNotEmpty ? LatLng(pinned.first.lat, pinned.first.lng) : _fallbackCenter);
+        (pinned.isNotEmpty
+            ? LatLng(pinned.first.lat, pinned.first.lng)
+            : _fallbackCenter);
 
     return Stack(
       children: [
@@ -258,7 +310,8 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+              urlTemplate:
+                  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
               subdomains: const ['a', 'b', 'c', 'd'],
               userAgentPackageName: 'com.bachaokhana.app',
             ),
@@ -309,10 +362,12 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
             child: Card(
               color: Colors.orange.shade50,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: Text(
                   '${businesses.length - pinned.length} business(es) without a pinned location aren\'t shown on the map.',
-                  style: TextStyle(fontSize: 11.5, color: Colors.orange.shade900),
+                  style:
+                      TextStyle(fontSize: 11.5, color: Colors.orange.shade900),
                 ),
               ),
             ),
@@ -336,7 +391,8 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
           backgroundColor: Colors.green.shade50,
           child: Icon(Icons.storefront, color: Colors.green.shade700),
         ),
-        title: Text(business.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(business.name,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(
           _distanceLabel(business) != null
               ? '${_distanceLabel(business)} \u2022 ${business.address}'
@@ -355,7 +411,8 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
 
   void _openMenu(Business business) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => RestaurantMenuScreen(business: business)),
+      MaterialPageRoute(
+          builder: (_) => RestaurantMenuScreen(business: business)),
     );
   }
 }

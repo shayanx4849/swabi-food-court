@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/location_service.dart';
-import '../../models/listing.dart';
 import '../../models/business.dart';
 import '../../models/app_user.dart';
-import '../../models/menu_item.dart';
-import '../../widgets/listing_card.dart';
+import '../../models/deal.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/cart_button.dart';
-import '../../widgets/impact_banner.dart';
-import '../../widgets/menu_item_grid_card.dart';
-import 'listing_detail_screen.dart';
+import '../../widgets/star_rating.dart';
+import 'restaurant_menu_screen.dart';
 import 'restaurants_search_screen.dart';
-import 'menu_item_detail_screen.dart';
+import 'menu_category_screen.dart';
+import 'deal_detail_screen.dart';
 
-/// The Home tab — a lightweight dashboard: personal greeting, the app-wide
-/// impact banner, category filter chips, and a horizontally-scrolling
-/// preview of nearby offers with a "See all" link to the full Browse tab.
+/// The Home tab — a slim top bar (Cart/Notifications), a "Deliver to"
+/// location line of its own underneath, a functional search bar, food
+/// category tiles, a "Deals near you" hero carousel (business-managed
+/// Deals — NOT the time-limited Surprise Bag surplus listings), and a
+/// Popular Restaurants section sorted by rating.
 class HomeTab extends StatefulWidget {
   final VoidCallback onSeeAllTap;
   const HomeTab({super.key, required this.onSeeAllTap});
@@ -30,19 +30,35 @@ class _HomeTabState extends State<HomeTab> {
   final _authService = AuthService();
   final _databaseService = DatabaseService();
   final _locationService = LocationService();
+  final _searchCtrl = TextEditingController();
+  final _dealsPageController = PageController(viewportFraction: 0.88);
 
   double? _lat;
   double? _lng;
+  String? _addressLabel; // reverse-geocoded "Deliver to" text
+  bool _locating = true;
   AppUser? _profile;
   Map<String, Business> _businessesById = {};
-  String _selectedCategory = 'all';
+  int _dealsPage = 0;
 
-  static const _categories = [
-    {'key': 'all', 'label': 'All', 'icon': Icons.apps},
-    {'key': 'restaurant', 'label': 'Meals', 'icon': Icons.restaurant},
-    {'key': 'bakery', 'label': 'Bakery', 'icon': Icons.bakery_dining},
-    {'key': 'mart', 'label': 'Groceries', 'icon': Icons.local_grocery_store},
-  ];
+  // Food-category tiles (browse by dish across every restaurant), not a
+  // business-type filter. Each category shows a small food emoji as its
+  // "thumbnail" — no app assets or hotlinked photos needed, so nothing to
+  // license or bundle, while still reading as a picture rather than a
+  // plain icon.
+  static const _categoryThumbnails = <String, String>{
+    'All': '🍽️',
+    'Starters': '🥗',
+    'Main Course': '🍛',
+    'Chicken': '🍗',
+    'Beef & Mutton': '🥩',
+    'Rice & Biryani': '🍚',
+    'Bread': '🍞',
+    'Sides': '🍟',
+    'Drinks': '🥤',
+    'Desserts': '🍰',
+    'Other': '🍴',
+  };
 
   @override
   void initState() {
@@ -55,21 +71,34 @@ class _HomeTabState extends State<HomeTab> {
     });
   }
 
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _dealsPageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadLocation() async {
     try {
       final pos = await _locationService.getCurrentLocation();
+      if (!mounted) return;
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+      });
+      final address =
+          await _locationService.reverseGeocode(pos.latitude, pos.longitude);
       if (mounted) {
         setState(() {
-          _lat = pos.latitude;
-          _lng = pos.longitude;
+          _addressLabel = address;
+          _locating = false;
         });
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('[Location] Could not get location: $e');
       // Common cause: device Location (GPS) service is turned off entirely
       // at the OS level — in that case Geolocator throws before the app
       // even gets a chance to show its own permission dialog.
+      if (mounted) setState(() => _locating = false);
     }
   }
 
@@ -80,345 +109,509 @@ class _HomeTabState extends State<HomeTab> {
     if (mounted) setState(() => _profile = profile);
   }
 
-  List<FoodListing> _filterAndSort(List<FoodListing> listings) {
-    var result = listings;
+  void _runSearch(String query) {
+    if (query.trim().isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RestaurantsSearchScreen(initialQuery: query.trim()),
+      ),
+    );
+  }
 
-    if (_selectedCategory != 'all') {
-      result = result.where((listing) {
-        final business = _businessesById[listing.businessId];
-
-        if (business == null) return false;
-
-        return business.category == _selectedCategory;
-      }).toList();
-    }
-
-    if (_lat != null && _lng != null) {
-      result.sort((a, b) {
-        final da = _locationService.distanceInKm(
-          _lat!,
-          _lng!,
-          a.lat,
-          a.lng,
-        );
-
-        final db = _locationService.distanceInKm(
-          _lat!,
-          _lng!,
-          b.lat,
-          b.lng,
-        );
-
+  /// Nearest-first once we know the customer's location — distance is
+  /// looked up via the deal's own business (Deal itself doesn't carry
+  /// lat/lng, only the business does).
+  List<Deal> _sortDealsByDistance(List<Deal> deals) {
+    if (_lat == null || _lng == null) return deals;
+    return [...deals]..sort((a, b) {
+        final ba = _businessesById[a.businessId];
+        final bb = _businessesById[b.businessId];
+        final da = ba == null
+            ? double.infinity
+            : _locationService.distanceInKm(_lat!, _lng!, ba.lat, ba.lng);
+        final db = bb == null
+            ? double.infinity
+            : _locationService.distanceInKm(_lat!, _lng!, bb.lat, bb.lng);
         return da.compareTo(db);
       });
-    }
+  }
 
+  List<Business> _popularRestaurants() {
+    final result = _businessesById.values.where((b) => b.verified).toList();
+    result.sort((a, b) => b.averageRating.compareTo(a.averageRating));
     return result;
   }
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: StreamBuilder<List<Deal>>(
+          stream: _databaseService.streamActiveDeals(),
+          builder: (context, snapshot) {
+            final deals = _sortDealsByDistance(snapshot.data ?? []);
+            final restaurants = _popularRestaurants();
+
+            return ListView(
+              padding: const EdgeInsets.only(bottom: 24),
+              children: [
+                _topBar(),
+                _locationRow(),
+                _searchBar(),
+                const SizedBox(height: 8),
+                _categoriesRow(),
+                _dealsHeader(),
+                if (!snapshot.hasData)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (deals.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 20),
+                    child: Text(
+                      'No deals right now — check back soon!',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  )
+                else
+                  _dealsCarousel(deals),
+                const SizedBox(height: 24),
+                _popularRestaurantsHeader(),
+                if (restaurants.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 20),
+                    child: Text(
+                      'No restaurants in this category yet.',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  )
+                else
+                  _popularRestaurantsList(restaurants),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ---------------- Top bar: Cart + Notifications ----------------
+
+  Widget _topBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+      child: Row(
+        children: [
+          const Spacer(),
+          const CartButton(),
+          const NotificationBell(),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- "Deliver to" location — its own row, below the top bar ----------------
+
+  Widget _locationRow() {
     final firstName = (_profile?.name.isNotEmpty == true)
         ? _profile!.name.split(' ').first
         : null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Swabi Food Delivery'),
-        actions: const [
-          CartButton(),
-          NotificationBell(),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.location_on, color: Colors.green.shade700, size: 24),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  firstName != null
+                      ? 'Deliver to, Hi $firstName 👋'
+                      : 'Deliver to',
+                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                ),
+                Text(
+                  _locating
+                      ? 'Locating…'
+                      : (_addressLabel ?? 'Location unavailable'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
-      body: StreamBuilder<List<FoodListing>>(
-        stream: _databaseService.streamVerifiedActiveListings(),
-        builder: (context, snapshot) {
-          final listings = _filterAndSort(snapshot.data ?? []);
+    );
+  }
 
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 24),
-            children: [
-              // ---- Greeting ----
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-                child: Text(
-                  firstName != null ? 'Hello, $firstName! 👋' : 'Hello! 👋',
-                  style: const TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.bold),
+  // ---------------- Search bar ----------------
+
+  Widget _searchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: TextField(
+                controller: _searchCtrl,
+                textInputAction: TextInputAction.search,
+                onSubmitted: _runSearch,
+                decoration: InputDecoration(
+                  hintText: 'Search for food, restaurants…',
+                  hintStyle:
+                      TextStyle(color: Colors.grey.shade500, fontSize: 13.5),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                child: Text(
-                  'Great to see you again.',
-                  style: TextStyle(fontSize: 13.5, color: Colors.grey.shade600),
-                ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Material(
+            color: Colors.green.shade700,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const RestaurantsSearchScreen()),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(14),
+                child: Icon(Icons.tune, color: Colors.white, size: 20),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              // ---- Impact banner ----
-              const ImpactBanner(),
+  // ---------------- Category chips ----------------
 
-              // ---- Category chips ----
-              SizedBox(
-                height: 88,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  itemCount: _categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (context, i) {
-                    final cat = _categories[i];
-                    final selected = _selectedCategory == cat['key'];
-                    return GestureDetector(
-                      onTap: () => setState(
-                          () => _selectedCategory = cat['key'] as String),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? Colors.green.shade700
-                                  : Colors.green.shade50,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              cat['icon'] as IconData,
-                              color: selected
-                                  ? Colors.white
-                                  : Colors.green.shade700,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            cat['label'] as String,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: selected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: selected
-                                  ? Colors.green.shade800
-                                  : Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+  Widget _categoriesRow() {
+    final labels = _categoryThumbnails.keys.toList();
+    return SizedBox(
+      height: 88,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        itemCount: labels.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, i) {
+          final label = labels[i];
+          return GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => MenuCategoryScreen(initialCategory: label),
                 ),
-              ),
-
-              // ---- Order from a restaurant's regular menu ----
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const RestaurantsSearchScreen()),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.orange.shade100),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.restaurant_menu,
-                            color: Colors.orange.shade800),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Order from a restaurant\'s regular menu',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange.shade900),
-                              ),
-                              Text(
-                                'No deals or time limits — order any time',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.orange.shade800),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right,
-                            color: Colors.orange.shade800),
-                      ],
-                    ),
+              );
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    shape: BoxShape.circle,
                   ),
-                ),
-              ),
-
-              // ---- Nearby offers header ----
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text('Nearby offers',
-                          style: TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.bold)),
-                    ),
-                    TextButton(
-                      onPressed: widget.onSeeAllTap,
-                      child: const Text('See all'),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ---- Nearby offers carousel ----
-              if (!snapshot.hasData)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (listings.isEmpty)
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  alignment: Alignment.center,
                   child: Text(
-                    'No surprise bags in this category right now.',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                )
-              else
-                SizedBox(
-                  height: 290,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: listings.take(8).length,
-                    itemBuilder: (context, i) {
-                      final listing = listings[i];
-                      final business = _businessesById[listing.businessId];
-                      final distanceLabel = (_lat != null && _lng != null)
-                          ? '${_locationService.distanceInKm(_lat!, _lng!, listing.lat, listing.lng).toStringAsFixed(1)} km'
-                          : null;
-                      return SizedBox(
-                        width: 280,
-                        child: ListingCard(
-                          listing: listing,
-                          distanceLabel: distanceLabel,
-                          rating: business?.averageRating,
-                          ratingCount: business?.ratingCount,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ListingDetailScreen(listing: listing),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
+                    _categoryThumbnails[label]!,
+                    style: const TextStyle(fontSize: 24),
                   ),
                 ),
-
-              // ---- Restaurant Menu section ----
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 22, 12, 8),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text('Restaurant Menu',
-                          style: TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.bold)),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => const RestaurantsSearchScreen()),
-                        );
-                      },
-                      child: const Text('See all'),
-                    ),
-                  ],
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10.5, color: Colors.grey.shade700),
                 ),
-              ),
-              StreamBuilder<List<MenuItem>>(
-                stream: _databaseService.streamVerifiedMenuItems(),
-                builder: (context, menuSnapshot) {
-                  if (!menuSnapshot.hasData) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 30),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  var menuItems = menuSnapshot.data!
-                      .where((item) => item.available)
-                      .toList();
-
-                  if (_selectedCategory != 'all') {
-                    menuItems = menuItems.where((item) {
-                      final business = _businessesById[item.businessId];
-
-                      if (business == null) {
-                        return false;
-                      }
-
-                      return business.category == _selectedCategory;
-                    }).toList();
-                  }
-                  if (menuItems.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 20),
-                      child: Text(
-                        'No restaurant menu items available yet.',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                    );
-                  }
-                  // Sized so exactly two cards are visible across the
-                  // screen width at once, per the requested layout.
-                  final cardWidth =
-                      (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2;
-                  return SizedBox(
-                    height: 235,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: menuItems.take(10).length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
-                      itemBuilder: (context, i) {
-                        final item = menuItems[i];
-                        return SizedBox(
-                          width: cardWidth,
-                          child: MenuItemGridCard(
-                            item: item,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      MenuItemDetailScreen(item: item),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
+    );
+  }
+
+  // ---------------- Deals near you (business-managed Deals, no forced time limit) ----------------
+
+  Widget _dealsHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 12, 10),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text('Deals near you',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+              onPressed: widget.onSeeAllTap, child: const Text('See all')),
+        ],
+      ),
+    );
+  }
+
+  Widget _dealsCarousel(List<Deal> deals) {
+    final shown = deals.take(6).toList();
+    return Column(
+      children: [
+        SizedBox(
+          height: 190,
+          child: PageView.builder(
+            controller: _dealsPageController,
+            itemCount: shown.length,
+            onPageChanged: (i) => setState(() => _dealsPage = i),
+            itemBuilder: (context, i) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: _dealCard(shown[i]),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(shown.length, (i) {
+            final active = i == _dealsPage;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: active ? 18 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: active ? Colors.green.shade700 : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _dealCard(Deal deal) {
+    final pctOff = deal.discountPercent.round();
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => DealDetailScreen(deal: deal)),
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (deal.imageUrl != null)
+              Image.network(deal.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Container(color: Colors.green.shade900))
+            else
+              Container(color: Colors.green.shade900),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.05),
+                    Colors.black.withOpacity(0.75)
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (pctOff > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade700,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text('$pctOff% OFF',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(deal.menuItemName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(deal.businessName,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 12)),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                            'Rs. ${deal.discountedPrice.toStringAsFixed(0)} • View deal',
+                            style: TextStyle(
+                                color: Colors.green.shade800,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------- Popular Restaurants ----------------
+
+  Widget _popularRestaurantsHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 12, 8),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text('Popular Restaurants',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const RestaurantsSearchScreen()),
+              );
+            },
+            child: const Text('See all'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _popularRestaurantsList(List<Business> restaurants) {
+    return Column(
+      children: restaurants.take(6).map((business) {
+        final distanceLabel = (_lat != null &&
+                _lng != null &&
+                (business.lat != 0 || business.lng != 0))
+            ? '${_locationService.distanceInKm(_lat!, _lng!, business.lat, business.lng).toStringAsFixed(1)} km'
+            : null;
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => RestaurantMenuScreen(business: business)),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.storefront,
+                        color: Colors.green.shade700, size: 26),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(business.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14.5)),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            if (business.ratingCount > 0) ...[
+                              StarRating(
+                                  rating: business.averageRating.round(),
+                                  size: 12),
+                              const SizedBox(width: 4),
+                              Text(business.averageRating.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(width: 8),
+                            ],
+                            Text(
+                              distanceLabel != null
+                                  ? '$distanceLabel • ${business.category}'
+                                  : business.category,
+                              style: TextStyle(
+                                  fontSize: 11.5, color: Colors.grey.shade600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

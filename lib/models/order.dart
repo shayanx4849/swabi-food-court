@@ -36,6 +36,7 @@ class FoodOrder {
   /// pickup-window coordination.
   final String orderSource;
   final String? menuItemId; // set when orderSource == 'menu'
+  final String? dealId; // set when this order was placed via a business Deal
 
   FoodOrder({
     required this.id,
@@ -58,6 +59,7 @@ class FoodOrder {
     this.deliveryLng,
     this.orderSource = 'surplus',
     this.menuItemId,
+    this.dealId,
   });
 
   bool get hasDeliveryPin => deliveryLat != null && deliveryLng != null;
@@ -87,6 +89,7 @@ class FoodOrder {
       'deliveryLng': deliveryLng,
       'orderSource': orderSource,
       'menuItemId': menuItemId,
+      'dealId': dealId,
     };
   }
 
@@ -112,6 +115,7 @@ class FoodOrder {
       deliveryLng: map['deliveryLng'] == null ? null : (map['deliveryLng'] as num).toDouble(),
       orderSource: map['orderSource'] ?? 'surplus',
       menuItemId: map['menuItemId'],
+      dealId: map['dealId'],
     );
   }
 }

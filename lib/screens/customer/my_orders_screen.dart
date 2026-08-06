@@ -39,7 +39,7 @@ class MyOrdersScreen extends StatelessWidget {
 
               return OrderCard(
                 order: order,
-                onTap: order.status == 'pending'
+                onTap: (order.status == 'pending' || order.status == 'confirmed')
                     ? () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
