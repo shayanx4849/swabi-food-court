@@ -41,6 +41,7 @@ class MiniMapView extends StatelessWidget {
                 urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.bachaokhana.app',
+                retinaMode: RetinaMode.isHighDensity(context),
               ),
               MarkerLayer(markers: [
                 Marker(

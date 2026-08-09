@@ -57,4 +57,11 @@ class AuthService {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+  /// Sends a password-reset email via Firebase Auth. The person clicks the
+  /// link in that email to set a new password themselves — this app never
+  /// sees or handles the new password directly.
+  Future<void> resetPassword(String email) async {
+    await _auth.sendPasswordResetEmail(email: email.trim());
+  }
 }

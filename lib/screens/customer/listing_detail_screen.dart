@@ -11,6 +11,7 @@ import '../../widgets/star_rating.dart';
 import '../../widgets/cart_button.dart';
 import '../../widgets/mini_map_view.dart';
 import '../shared/location_picker_screen.dart';
+import '../shared/saved_address_picker.dart';
 import 'qr_display_screen.dart';
 import 'cart_screen.dart';
 
@@ -41,9 +42,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       100; // flat fee — no distance-based pricing in this MVP
 
   Future<void> _pickDeliveryLocation() async {
-    final result = await Navigator.of(context).push<PickedLocation>(
-      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
-    );
+    final result = await showSavedAddressPicker(context);
     if (result != null) setState(() => _pickedLocation = result);
   }
 
@@ -379,20 +378,23 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         ),
                         if (_orderType == 'delivery') ...[
                           const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            icon: Icon(_pickedLocation == null
-                                ? Icons.map_outlined
-                                : Icons.edit_location_alt),
-                            label: Text(_pickedLocation == null
-                                ? 'Pin delivery location on map'
-                                : 'Change delivery location'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 50),
-                              foregroundColor: Colors.green.shade700,
-                              side: BorderSide(color: Colors.green.shade700),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: Icon(_pickedLocation == null
+                                  ? Icons.map_outlined
+                                  : Icons.edit_location_alt),
+                              label: Text(_pickedLocation == null
+                                  ? 'Choose delivery location'
+                                  : 'Change delivery location'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 14, horizontal: 16),
+                                foregroundColor: Colors.green.shade700,
+                                side: BorderSide(color: Colors.green.shade700),
+                              ),
+                              onPressed: _pickDeliveryLocation,
                             ),
-                            onPressed: _pickDeliveryLocation,
                           ),
                           if (_pickedLocation != null) ...[
                             const SizedBox(height: 6),
@@ -660,7 +662,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   strokeWidth: 2, color: Colors.white),
                             )
                           : Text(
-                              soldOut ? 'Sold out' : 'Reserve bag',
+                              soldOut ? 'Sold out' : 'Reserve this bag',
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),

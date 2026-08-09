@@ -100,7 +100,8 @@ class _PendingBusinessesTab extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           backgroundColor: Colors.orange.shade50,
-                          child: Icon(Icons.storefront, color: Colors.orange.shade700),
+                          child: Icon(Icons.storefront,
+                              color: Colors.orange.shade700),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -108,24 +109,33 @@ class _PendingBusinessesTab extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(business.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15)),
                               Text(business.category,
-                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600)),
                             ],
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(business.address, style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                    Text(business.address,
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.grey.shade700)),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            icon: const Icon(Icons.close, size: 18, color: Colors.red),
-                            label: const Text('Reject', style: TextStyle(color: Colors.red)),
-                            style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+                            icon: const Icon(Icons.close,
+                                size: 18, color: Colors.red),
+                            label: const Text('Reject',
+                                style: TextStyle(color: Colors.red)),
+                            style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.red)),
                             onPressed: () => _rejectBusiness(context, business),
                           ),
                         ),
@@ -134,9 +144,11 @@ class _PendingBusinessesTab extends StatelessWidget {
                           child: FilledButton.icon(
                             icon: const Icon(Icons.check, size: 18),
                             label: const Text('Approve'),
-                            style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
+                            style: FilledButton.styleFrom(
+                                backgroundColor: Colors.green.shade700),
                             onPressed: () async {
-                              await databaseService.setBusinessVerified(business.id, true);
+                              await databaseService.setBusinessVerified(
+                                  business.id, true);
                             },
                           ),
                         ),
@@ -208,11 +220,14 @@ class _AllBusinessesTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor:
-                      business.verified ? Colors.green.shade50 : Colors.orange.shade50,
+                  backgroundColor: business.verified
+                      ? Colors.green.shade50
+                      : Colors.orange.shade50,
                   child: Icon(
                     business.verified ? Icons.verified : Icons.hourglass_empty,
-                    color: business.verified ? Colors.green.shade700 : Colors.orange.shade700,
+                    color: business.verified
+                        ? Colors.green.shade700
+                        : Colors.orange.shade700,
                     size: 20,
                   ),
                 ),
@@ -232,7 +247,8 @@ class _AllBusinessesTab extends StatelessWidget {
                         context: context,
                         builder: (_) => AlertDialog(
                           title: const Text('Remove this business?'),
-                          content: Text('"${business.name}" and its data will remain, '
+                          content: Text(
+                              '"${business.name}" and its data will remain, '
                               'but it will no longer appear on the platform unless '
                               're-verified.'),
                           actions: [
@@ -242,7 +258,8 @@ class _AllBusinessesTab extends StatelessWidget {
                             ),
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+                              child: const Text('Remove',
+                                  style: TextStyle(color: Colors.red)),
                             ),
                           ],
                         ),
@@ -255,11 +272,13 @@ class _AllBusinessesTab extends StatelessWidget {
                   itemBuilder: (context) => [
                     PopupMenuItem(
                       value: 'toggle',
-                      child: Text(business.verified ? 'Revoke verification' : 'Verify'),
+                      child: Text(
+                          business.verified ? 'Revoke verification' : 'Verify'),
                     ),
                     const PopupMenuItem(
                       value: 'delete',
-                      child: Text('Remove', style: TextStyle(color: Colors.red)),
+                      child:
+                          Text('Remove', style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),

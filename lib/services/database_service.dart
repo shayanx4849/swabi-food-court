@@ -9,6 +9,7 @@ import '../models/notification_item.dart';
 import '../models/menu_item.dart';
 import '../models/cart_item.dart';
 import '../models/deal.dart';
+import '../models/saved_address.dart';
 import 'cart_service.dart';
 
 /// All app data lives in Firebase Realtime Database instead of Cloud
@@ -324,6 +325,58 @@ class DatabaseService {
     );
   }
 
+  /// Customer cancels their own order — only allowed while it is still
+  /// "pending" (i.e. the business hasn't accepted/started it yet). If the
+  /// order was for a Surprise Bag listing, the unit it reserved is put
+  /// back into that listing's available stock, and the listing is
+  /// reopened from "sold_out" back to "active" if this was the unit that
+  /// had sold it out. The order record itself is deleted, not just marked
+  /// cancelled, so it doesn't linger in either party's order history.
+  Future<void> cancelOrder(String orderId) async {
+    final ref = _db.child('orders').child(orderId);
+    final snap = await ref.get();
+    if (!snap.exists) return;
+
+    final data = Map<dynamic, dynamic>.from(snap.value as Map);
+    if (data['status'] != 'pending') return;
+
+    final listingId = data['listingId'] as String?;
+    if (data['orderSource'] == 'surplus' && listingId != null && listingId.isNotEmpty) {
+      await _restoreListingQuantity(listingId);
+    }
+
+    final businessId = data['businessId'] as String?;
+    if (businessId != null) {
+      final business = await getBusinessById(businessId);
+      if (business != null) {
+        await addNotification(
+          uid: business.ownerId,
+          title: 'Order cancelled',
+          body: '${data['customerName']} cancelled their order for "${data['listingTitle']}".',
+        );
+      }
+    }
+
+    await ref.remove();
+  }
+
+  /// Undoes one unit of [decrementListingQuantity] — used when a Surprise
+  /// Bag order is cancelled while still pending, so the unit it reserved
+  /// becomes available to other customers again.
+  Future<void> _restoreListingQuantity(String listingId) async {
+    final ref = _db.child('listings').child(listingId);
+
+    await ref.child('quantityAvailable').runTransaction((currentValue) {
+      final current = (currentValue as int?) ?? 0;
+      return Transaction.success(current + 1);
+    });
+
+    final statusSnap = await ref.child('status').get();
+    if (statusSnap.value == 'sold_out') {
+      await ref.child('status').set('active');
+    }
+  }
+
   /// Business scans the customer's QR code at pickup time. Marks the order
   /// completed, bumps the global impact counters, and notifies the customer.
   Future<bool> verifyPickup(String scannedOrderId) async {
@@ -630,6 +683,37 @@ class DatabaseService {
     };
 
     return controller.stream;
+  }
+
+  // ---------------- SAVED ADDRESSES ----------------
+  //
+  // A customer's saved delivery addresses (Home, Work, etc.) — stored per
+  // user, always map-pinned via LocationPickerScreen rather than typed.
+
+  Future<void> addSavedAddress(String uid, SavedAddress address) async {
+    await _db
+        .child('saved_addresses')
+        .child(uid)
+        .child(address.id)
+        .set(address.toMap());
+  }
+
+  Future<void> deleteSavedAddress(String uid, String addressId) async {
+    await _db.child('saved_addresses').child(uid).child(addressId).remove();
+  }
+
+  Stream<List<SavedAddress>> streamSavedAddresses(String uid) {
+    return _db.child('saved_addresses').child(uid).onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <SavedAddress>[];
+      final map = Map<dynamic, dynamic>.from(data as Map);
+      final addresses = map.entries
+          .map((e) =>
+              SavedAddress.fromMap(e.key, Map<dynamic, dynamic>.from(e.value)))
+          .toList();
+      addresses.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return addresses;
+    }).asBroadcastStream();
   }
 
   // ---------------- REVIEWS & RATINGS ----------------

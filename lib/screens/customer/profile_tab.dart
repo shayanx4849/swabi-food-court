@@ -3,12 +3,13 @@ import '../../services/auth_service.dart';
 import '../../models/app_user.dart';
 import '../auth/login_screen.dart';
 import '../shared/notifications_screen.dart';
+import 'addresses_screen.dart';
+import 'favorites_tab.dart' show FavoritesTab;
 
 /// The Profile tab — shows the logged-in customer's name/email and gives
-/// access to notifications and logout. Kept intentionally simple for now;
-/// items like "Payment methods" and "Addresses" are listed but disabled
-/// since those features aren't built yet (payments are noted as future
-/// work in the FYP proposal).
+/// access to notifications, saved addresses, and logout. "Payment methods"
+/// and "Help & Support" are still listed but disabled since those aren't
+/// built yet (payments are noted as future work in the FYP proposal).
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
 
@@ -97,13 +98,27 @@ class _ProfileTabState extends State<ProfileTab> {
           _tile(
             icon: Icons.location_on_outlined,
             label: 'Addresses',
-            subtitle: 'Coming soon',
-            enabled: false,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AddressesScreen()),
+              );
+            },
           ),
           _tile(
-            icon: Icons.help_outline,
+              icon: Icons.favorite_outline_sharp,
+              label: 'Favorites',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const FavoritesTab()),
+                );
+              }
+
+              // enabled: false,
+              ),
+          _tile(
+            icon: Icons.help,
             label: 'Help & Support',
-            subtitle: 'Coming soon',
+            subtitle: "Coming soon",
             enabled: false,
           ),
           const Divider(height: 24),
@@ -113,67 +128,24 @@ class _ProfileTabState extends State<ProfileTab> {
             iconColor: Colors.red,
             labelColor: Colors.red,
             onTap: () async {
-              final confirm = await showDialog<bool>(
+              final confirmed = await showDialog<bool>(
                 context: context,
-                builder: (ctx) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  backgroundColor: Colors.green.shade50,
-                  titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                  contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                  actionsPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  title: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.logout, color: Colors.green.shade800),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'Log Out',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                  content: const Text('Are you sure you want to log out?'),
+                builder: (_) => AlertDialog(
+                  title: const Text('Log out?'),
+                  content: const Text('Are you sure you want to logout'),
                   actions: [
                     TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.grey.shade800,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        backgroundColor: Colors.transparent,
-                      ),
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('No'),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('Yes'),
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Log out',
+                          style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
               );
-              if (confirm != true) return; // user cancelled
+              if (confirmed != true) return;
               await _authService.signOut();
               if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(

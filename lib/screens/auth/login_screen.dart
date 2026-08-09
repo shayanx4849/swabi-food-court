@@ -28,6 +28,59 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  Future<void> _forgotPassword() async {
+    final controller = TextEditingController(text: _emailCtrl.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Enter your account email — we\'ll send a link to reset your password.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              decoration: const InputDecoration(
+                  labelText: 'Email', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Send link'),
+          ),
+        ],
+      ),
+    );
+
+    if (email == null || email.isEmpty || !email.contains('@')) return;
+
+    try {
+      await _authService.resetPassword(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset link sent to $email.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Could not send reset link. Check the email and try again.')),
+      );
+    }
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
@@ -113,7 +166,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (v) =>
                       (v == null || v.length < 6) ? 'Min 6 characters' : null,
                 ),
-                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _forgotPassword,
+                    child: const Text('Forgot password?'),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 if (_error != null)
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 8),

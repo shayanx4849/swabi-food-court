@@ -4,6 +4,7 @@ import '../../services/database_service.dart';
 import '../../models/deal.dart';
 import '../../models/order.dart';
 import '../shared/location_picker_screen.dart';
+import '../shared/saved_address_picker.dart';
 import 'qr_display_screen.dart';
 
 /// Ordering screen for a business Deal — a discounted price on one of
@@ -34,7 +35,8 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
   static const double deliveryFee = 100;
 
   double get _totalPrice =>
-      (widget.deal.discountedPrice * _quantity) + (_orderType == 'delivery' ? deliveryFee : 0);
+      (widget.deal.discountedPrice * _quantity) +
+      (_orderType == 'delivery' ? deliveryFee : 0);
 
   @override
   void dispose() {
@@ -43,9 +45,7 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
   }
 
   Future<void> _pickDeliveryLocation() async {
-    final result = await Navigator.of(context).push<PickedLocation>(
-      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
-    );
+    final result = await showSavedAddressPicker(context);
     if (result != null) setState(() => _pickedLocation = result);
   }
 
@@ -62,13 +62,16 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
     if (_orderType == 'delivery') {
       if (_pickedLocation == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please pin your delivery location on the map.')),
+          const SnackBar(
+              content: Text('Please pin your delivery location on the map.')),
         );
         return;
       }
       if (_phoneCtrl.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a phone number so the business can reach you.')),
+          const SnackBar(
+              content: Text(
+                  'Please enter a phone number so the business can reach you.')),
         );
         return;
       }
@@ -109,9 +112,11 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
           customerId: firebaseUser.uid,
           customerName: profile?.name ?? 'Customer',
           orderType: _orderType,
-          deliveryAddress: _orderType == 'delivery' ? _pickedLocation!.address : null,
+          deliveryAddress:
+              _orderType == 'delivery' ? _pickedLocation!.address : null,
           deliveryFee: _orderType == 'delivery' ? deliveryFee / _quantity : 0,
-          customerPhone: _orderType == 'delivery' ? _phoneCtrl.text.trim() : null,
+          customerPhone:
+              _orderType == 'delivery' ? _phoneCtrl.text.trim() : null,
           deliveryLat: _orderType == 'delivery' ? _pickedLocation!.lat : null,
           deliveryLng: _orderType == 'delivery' ? _pickedLocation!.lng : null,
           priceOverride: deal.discountedPrice,
@@ -147,29 +152,39 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
           if (deal.imageUrl != null)
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.network(deal.imageUrl!, height: 180, width: double.infinity, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(height: 180, color: Colors.green.shade50)),
+              child: Image.network(deal.imageUrl!,
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Container(height: 180, color: Colors.green.shade50)),
             ),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: Text(deal.menuItemName,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold)),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: Colors.orange.shade700,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text('${deal.discountPercent.round()}% OFF',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(deal.businessName, style: TextStyle(color: Colors.grey.shade600)),
+          Text(deal.businessName,
+              style: TextStyle(color: Colors.grey.shade600)),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -181,7 +196,9 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
               const SizedBox(width: 8),
               Text('Rs. ${deal.discountedPrice.toStringAsFixed(0)}',
                   style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 22, color: Colors.green.shade700)),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                      color: Colors.green.shade700)),
             ],
           ),
           const SizedBox(height: 4),
@@ -189,11 +206,11 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
             children: [
               Icon(Icons.event, size: 14, color: Colors.grey.shade600),
               const SizedBox(width: 4),
-              Text('Deal runs until ${deal.expiryDate.day}/${deal.expiryDate.month}/${deal.expiryDate.year}',
+              Text(
+                  'Deal runs until ${deal.expiryDate.day}/${deal.expiryDate.month}/${deal.expiryDate.year}',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             ],
           ),
-
           if (!canOrder) ...[
             const SizedBox(height: 16),
             Container(
@@ -204,27 +221,31 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                deal.isExpired ? 'This deal has expired.' : 'This deal is currently paused.',
+                deal.isExpired
+                    ? 'This deal has expired.'
+                    : 'This deal is currently paused.',
                 style: TextStyle(color: Colors.red.shade800, fontSize: 13),
               ),
             ),
           ],
-
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 16),
-
           if (canOrder) ...[
             // ---- Quantity ----
             Row(
               children: [
-                const Text('Quantity', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text('Quantity',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.remove_circle_outline),
-                  onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                  onPressed:
+                      _quantity > 1 ? () => setState(() => _quantity--) : null,
                 ),
-                Text('$_quantity', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('$_quantity',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline),
                   onPressed: () => setState(() => _quantity++),
@@ -241,9 +262,20 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
                     label: const Text('Pickup'),
                     selected: _orderType == 'pickup',
                     onSelected: (_) => setState(() => _orderType = 'pickup'),
+                    backgroundColor: Colors.grey.shade200,
                     selectedColor: Colors.green.shade700,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                            color: _orderType == 'pickup'
+                                ? Colors.green.shade700
+                                : Colors.grey.shade300)),
                     labelStyle: TextStyle(
-                        color: _orderType == 'pickup' ? Colors.white : Colors.black87,
+                        color: _orderType == 'pickup'
+                            ? Colors.white
+                            : Colors.black87,
                         fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -253,9 +285,20 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
                     label: const Text('Delivery'),
                     selected: _orderType == 'delivery',
                     onSelected: (_) => setState(() => _orderType = 'delivery'),
+                    backgroundColor: Colors.grey.shade200,
                     selectedColor: Colors.green.shade700,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                            color: _orderType == 'delivery'
+                                ? Colors.green.shade700
+                                : Colors.grey.shade300)),
                     labelStyle: TextStyle(
-                        color: _orderType == 'delivery' ? Colors.white : Colors.black87,
+                        color: _orderType == 'delivery'
+                            ? Colors.white
+                            : Colors.black87,
                         fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -264,15 +307,25 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
 
             if (_orderType == 'delivery') ...[
               const SizedBox(height: 12),
-              OutlinedButton.icon(
-                icon: Icon(_pickedLocation == null ? Icons.map_outlined : Icons.edit_location_alt),
-                label: Text(_pickedLocation == null
-                    ? 'Pin delivery location on map'
-                    : 'Change delivery location'),
-                style: OutlinedButton.styleFrom(
+              ElevatedButton.icon(
+                icon: Icon(
+                  _pickedLocation == null
+                      ? Icons.map_outlined
+                      : Icons.edit_location_alt,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  _pickedLocation == null
+                      ? 'Choose delivery location'
+                      : 'Change delivery location',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  foregroundColor: Colors.green.shade700,
-                  side: BorderSide(color: Colors.green.shade700),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: _pickDeliveryLocation,
               ),
@@ -292,7 +345,8 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
                       Expanded(
                         child: Text(
                           _pickedLocation!.address,
-                          style: TextStyle(fontSize: 12, color: Colors.green.shade900),
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.green.shade900),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -309,7 +363,8 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
                   labelText: 'Phone number',
                   hintText: '03xx-xxxxxxx',
                   prefixIcon: const Icon(Icons.call_outlined, size: 20),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   isDense: true,
                 ),
               ),
@@ -319,18 +374,25 @@ class _DealDetailScreenState extends State<DealDetailScreen> {
             Row(
               children: [
                 Text('Rs. ${_totalPrice.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green.shade700,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 14),
                   ),
                   onPressed: _ordering ? null : _placeOrder,
                   child: _ordering
                       ? const SizedBox(
-                          height: 18, width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
                       : const Text('Order Now'),
                 ),
               ],

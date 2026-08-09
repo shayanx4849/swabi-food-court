@@ -66,7 +66,8 @@ class _MenuCategoryScreenState extends State<MenuCategoryScreen> {
               stream: _databaseService.streamVerifiedMenuItems(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text('Failed to load: ${snapshot.error}'));
+                  return Center(
+                      child: Text('Failed to load: ${snapshot.error}'));
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -99,7 +100,8 @@ class _MenuCategoryScreenState extends State<MenuCategoryScreen> {
                       item: item,
                       onTap: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => MenuItemDetailScreen(item: item)),
+                          MaterialPageRoute(
+                              builder: (_) => MenuItemDetailScreen(item: item)),
                         );
                       },
                     );

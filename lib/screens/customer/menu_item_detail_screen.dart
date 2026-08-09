@@ -6,6 +6,7 @@ import '../../models/menu_item.dart';
 import '../../models/cart_item.dart';
 import '../../widgets/cart_button.dart';
 import '../shared/location_picker_screen.dart';
+import '../shared/saved_address_picker.dart';
 import 'qr_display_screen.dart';
 import 'cart_screen.dart';
 
@@ -35,9 +36,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
   PickedLocation? _pickedLocation;
 
   Future<void> _pickDeliveryLocation() async {
-    final result = await Navigator.of(context).push<PickedLocation>(
-      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
-    );
+    final result = await showSavedAddressPicker(context);
     if (result != null) setState(() => _pickedLocation = result);
   }
 
@@ -86,13 +85,16 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
     if (_orderType == 'delivery') {
       if (_pickedLocation == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please pin your delivery location on the map.')),
+          const SnackBar(
+              content: Text('Please pin your delivery location on the map.')),
         );
         return;
       }
       if (_phoneCtrl.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a phone number so the business can reach you.')),
+          const SnackBar(
+              content: Text(
+                  'Please enter a phone number so the business can reach you.')),
         );
         return;
       }
@@ -114,9 +116,11 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
           customerId: firebaseUser.uid,
           customerName: profile?.name ?? 'Customer',
           orderType: _orderType,
-          deliveryAddress: _orderType == 'delivery' ? _pickedLocation!.address : null,
+          deliveryAddress:
+              _orderType == 'delivery' ? _pickedLocation!.address : null,
           deliveryFee: _orderType == 'delivery' ? deliveryFee / _quantity : 0,
-          customerPhone: _orderType == 'delivery' ? _phoneCtrl.text.trim() : null,
+          customerPhone:
+              _orderType == 'delivery' ? _phoneCtrl.text.trim() : null,
           deliveryLat: _orderType == 'delivery' ? _pickedLocation!.lat : null,
           deliveryLng: _orderType == 'delivery' ? _pickedLocation!.lng : null,
         );
@@ -236,7 +240,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                   ? Icons.map_outlined
                   : Icons.edit_location_alt),
               label: Text(_pickedLocation == null
-                  ? 'Pin delivery location on map'
+                  ? 'Choose delivery location'
                   : 'Change delivery location'),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -261,7 +265,8 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                     Expanded(
                       child: Text(
                         _pickedLocation!.address,
-                        style: TextStyle(fontSize: 12, color: Colors.green.shade900),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.green.shade900),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -336,6 +341,8 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.green.shade700,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed:
                           (item.available && !_ordering) ? _placeOrder : null,

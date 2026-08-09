@@ -145,6 +145,13 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Home"),
+        actions: const [
+          CartButton(),
+          NotificationBell(),
+        ],
+      ),
       body: SafeArea(
         child: StreamBuilder<List<Deal>>(
           stream: _databaseService.streamActiveDeals(),
@@ -155,7 +162,6 @@ class _HomeTabState extends State<HomeTab> {
             return ListView(
               padding: const EdgeInsets.only(bottom: 24),
               children: [
-                _topBar(),
                 _locationRow(),
                 _searchBar(),
                 const SizedBox(height: 8),
@@ -200,19 +206,6 @@ class _HomeTabState extends State<HomeTab> {
 
   // ---------------- Top bar: Cart + Notifications ----------------
 
-  Widget _topBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
-      child: Row(
-        children: [
-          const Spacer(),
-          const CartButton(),
-          const NotificationBell(),
-        ],
-      ),
-    );
-  }
-
   // ---------------- "Deliver to" location — its own row, below the top bar ----------------
 
   Widget _locationRow() {
@@ -221,7 +214,7 @@ class _HomeTabState extends State<HomeTab> {
         : null;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

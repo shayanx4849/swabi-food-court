@@ -117,10 +117,11 @@ class _SignupScreenState extends State<SignupScreen> {
                 TextFormField(
                   controller: _nameCtrl,
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
                     labelText:
                         _role == 'business' ? 'Business name' : 'Full name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   validator: (v) =>
                       (v == null || v.isEmpty) ? 'Required' : null,
@@ -130,10 +131,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      )),
+                    labelText: 'Email',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   validator: (v) => (v == null || !v.contains('@'))
                       ? 'Enter a valid email'
                       : null,
@@ -144,6 +146,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -156,8 +161,6 @@ class _SignupScreenState extends State<SignupScreen> {
                         });
                       },
                     ),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
                   ),
                   validator: (v) =>
                       (v == null || v.length < 6) ? 'Min 6 characters' : null,
@@ -169,7 +172,8 @@ class _SignupScreenState extends State<SignupScreen> {
                     decoration: InputDecoration(
                       labelText: 'Category',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -228,6 +232,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 8),
                 FilledButton(
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onPressed: _loading ? null : _signup,
                   child: _loading
                       ? const SizedBox(

@@ -46,7 +46,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '88137372901',
     projectId: 'bachaokhana',
     authDomain: 'bachaokhana.firebaseapp.com',
-    databaseURL: 'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'bachaokhana.firebasestorage.app',
     measurementId: 'G-NVHLVTXD4B',
   );
@@ -56,7 +57,8 @@ class DefaultFirebaseOptions {
     appId: '1:88137372901:android:95a88a31368d7816c7700c',
     messagingSenderId: '88137372901',
     projectId: 'bachaokhana',
-    databaseURL: 'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'bachaokhana.firebasestorage.app',
   );
 
@@ -65,7 +67,8 @@ class DefaultFirebaseOptions {
     appId: '1:88137372901:ios:47248b8d9f44d564c7700c',
     messagingSenderId: '88137372901',
     projectId: 'bachaokhana',
-    databaseURL: 'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'bachaokhana.firebasestorage.app',
     iosBundleId: 'com.example.bachaokhana',
   );
@@ -75,7 +78,8 @@ class DefaultFirebaseOptions {
     appId: '1:88137372901:ios:47248b8d9f44d564c7700c',
     messagingSenderId: '88137372901',
     projectId: 'bachaokhana',
-    databaseURL: 'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'bachaokhana.firebasestorage.app',
     iosBundleId: 'com.example.bachaokhana',
   );
@@ -86,7 +90,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '88137372901',
     projectId: 'bachaokhana',
     authDomain: 'bachaokhana.firebaseapp.com',
-    databaseURL: 'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://bachaokhana-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'bachaokhana.firebasestorage.app',
     measurementId: 'G-TCTL8LYS8X',
   );

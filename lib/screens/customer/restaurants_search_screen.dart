@@ -64,11 +64,19 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
     _loadMyLocation();
   }
 
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _mapController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadMyLocation() async {
     try {
       final pos = await _locationService.getCurrentLocation();
-      if (mounted)
+      if (mounted) {
         setState(() => _myLocation = LatLng(pos.latitude, pos.longitude));
+      }
     } catch (_) {
       // No GPS fix — map just falls back to a default center, same as
       // elsewhere in the app when location is unavailable.
@@ -145,7 +153,7 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                 hintText: 'Search for restaurants or stores',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: const Color.fromARGB(66, 117, 117, 117),
+                fillColor: Colors.grey.shade100,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -251,29 +259,33 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                 ],
               ],
             ),
-            subtitle: Row(
-              children: [
-                Text(business.category,
-                    style:
-                        TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                if (business.ratingCount > 0) ...[
-                  const SizedBox(width: 8),
-                  StarRating(rating: business.averageRating.round(), size: 12),
-                  const SizedBox(width: 3),
-                  Text(business.averageRating.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 12)),
+            subtitle: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Text(business.category,
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  if (business.ratingCount > 0) ...[
+                    const SizedBox(width: 8),
+                    StarRating(
+                        rating: business.averageRating.round(), size: 12),
+                    const SizedBox(width: 3),
+                    Text(business.averageRating.toStringAsFixed(1),
+                        style: const TextStyle(fontSize: 12)),
+                  ],
+                  if (_distanceLabel(business) != null) ...[
+                    const SizedBox(width: 8),
+                    Icon(Icons.near_me, size: 11, color: Colors.green.shade700),
+                    const SizedBox(width: 2),
+                    Text(_distanceLabel(business)!,
+                        style: TextStyle(
+                            fontSize: 11.5,
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.w600)),
+                  ],
                 ],
-                if (_distanceLabel(business) != null) ...[
-                  const SizedBox(width: 8),
-                  Icon(Icons.near_me, size: 11, color: Colors.green.shade700),
-                  const SizedBox(width: 2),
-                  Text(_distanceLabel(business)!,
-                      style: TextStyle(
-                          fontSize: 11.5,
-                          color: Colors.green.shade700,
-                          fontWeight: FontWeight.w600)),
-                ],
-              ],
+              ),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -314,6 +326,7 @@ class _RestaurantsSearchScreenState extends State<RestaurantsSearchScreen> {
                   'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
               subdomains: const ['a', 'b', 'c', 'd'],
               userAgentPackageName: 'com.bachaokhana.app',
+              retinaMode: RetinaMode.isHighDensity(context),
             ),
             const RichAttributionWidget(
               attributions: [

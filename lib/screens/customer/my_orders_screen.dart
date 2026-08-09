@@ -12,6 +12,36 @@ import 'rate_order_screen.dart';
 class MyOrdersScreen extends StatelessWidget {
   const MyOrdersScreen({super.key});
 
+  Future<void> _confirmCancel(BuildContext context,
+      DatabaseService databaseService, FoodOrder order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Cancel this order?'),
+        content: Text(
+            '"${order.listingTitle}" from ${order.businessName} will be cancelled. This can\'t be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep order')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child:
+                const Text('Cancel order', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await databaseService.cancelOrder(order.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order cancelled.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = AuthService();
@@ -35,32 +65,49 @@ class MyOrdersScreen extends StatelessWidget {
             itemCount: orders.length,
             itemBuilder: (context, i) {
               final order = orders[i];
-              final showRateButton = order.status == 'completed' && !order.reviewed;
+              final showRateButton =
+                  order.status == 'completed' && !order.reviewed;
+              final showCancelButton = order.status == 'pending';
+
+              Widget? footer;
+              if (showRateButton) {
+                footer = OutlinedButton.icon(
+                  icon: const Icon(Icons.star_outline, size: 18),
+                  label: const Text('Rate this order'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RateOrderScreen(order: order),
+                      ),
+                    );
+                  },
+                );
+              } else if (showCancelButton) {
+                footer = OutlinedButton.icon(
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text('Cancel order'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                  onPressed: () =>
+                      _confirmCancel(context, databaseService, order),
+                );
+              }
 
               return OrderCard(
                 order: order,
-                onTap: (order.status == 'pending' || order.status == 'confirmed')
-                    ? () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => QrDisplayScreen(order: order),
-                          ),
-                        );
-                      }
-                    : null,
-                footer: showRateButton
-                    ? OutlinedButton.icon(
-                        icon: const Icon(Icons.star_outline, size: 18),
-                        label: const Text('Rate this order'),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => RateOrderScreen(order: order),
-                            ),
-                          );
-                        },
-                      )
-                    : null,
+                onTap:
+                    (order.status == 'pending' || order.status == 'confirmed')
+                        ? () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => QrDisplayScreen(order: order),
+                              ),
+                            );
+                          }
+                        : null,
+                footer: footer,
               );
             },
           );

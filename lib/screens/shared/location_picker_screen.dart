@@ -9,7 +9,8 @@ class PickedLocation {
   final double lat;
   final double lng;
   final String address;
-  const PickedLocation({required this.lat, required this.lng, required this.address});
+  const PickedLocation(
+      {required this.lat, required this.lng, required this.address});
 }
 
 /// A full-screen map picker (via flutter_map — free, no API key, no Google
@@ -70,6 +71,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     _debounce?.cancel();
     _searchCtrl.dispose();
     _searchFocus.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -108,7 +110,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
       if (result == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Couldn\'t find "$query" — try a more specific name')),
+          SnackBar(
+              content:
+                  Text('Couldn\'t find "$query" — try a more specific name')),
         );
         return;
       }
@@ -131,7 +135,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       final point = event.camera.center;
       setState(() => _center = point);
       _debounce?.cancel();
-      _debounce = Timer(const Duration(milliseconds: 500), () => _resolveAddress(point));
+      _debounce = Timer(
+          const Duration(milliseconds: 500), () => _resolveAddress(point));
     }
   }
 
@@ -140,7 +145,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       _resolvingAddress = true;
       _address = null;
     });
-    final address = await _locationService.reverseGeocode(point.latitude, point.longitude);
+    final address =
+        await _locationService.reverseGeocode(point.latitude, point.longitude);
     if (!mounted) return;
     setState(() {
       _address = address;
@@ -176,9 +182,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               // plain OpenStreetMap tiles, still completely free with no
               // API key/billing account (just needs attribution, below).
               TileLayer(
-                urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.bachaokhana.app',
+                retinaMode: RetinaMode.isHighDensity(context),
               ),
               const RichAttributionWidget(
                 attributions: [
@@ -194,7 +202,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           const IgnorePointer(
             child: Center(
               child: Padding(
-                padding: EdgeInsets.only(bottom: 36), // anchor pin tip to true center
+                padding: EdgeInsets.only(
+                    bottom: 36), // anchor pin tip to true center
                 child: Icon(Icons.location_pin, size: 44, color: Colors.red),
               ),
             ),
@@ -223,7 +232,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             decoration: const InputDecoration(
                               hintText: 'Search area, market, landmark…',
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
                               isDense: true,
                             ),
                           ),
@@ -232,8 +242,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           onPressed: _searching ? null : _searchLocation,
                           icon: _searching
                               ? const SizedBox(
-                                  height: 18, width: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2))
+                                  height: 18,
+                                  width: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2))
                               : const Icon(Icons.search),
                           color: Colors.green.shade700,
                         ),
@@ -245,7 +257,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, size: 15, color: Colors.grey.shade600),
+                          Icon(Icons.info_outline,
+                              size: 15, color: Colors.grey.shade600),
                           const SizedBox(width: 6),
                           const Expanded(
                             child: Text(
@@ -268,10 +281,13 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             child: FloatingActionButton.small(
               heroTag: 'locate_me',
               backgroundColor: Colors.white,
-              onPressed: _locating ? null : () => _useCurrentLocation(recenter: true),
+              onPressed:
+                  _locating ? null : () => _useCurrentLocation(recenter: true),
               child: _locating
                   ? const SizedBox(
-                      height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.my_location, color: Colors.black87),
             ),
           ),
@@ -288,7 +304,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 14),
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.12), blurRadius: 14),
                   ],
                 ),
                 child: Column(
@@ -297,16 +314,19 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.place, size: 16, color: Colors.green.shade700),
+                        Icon(Icons.place,
+                            size: 16, color: Colors.green.shade700),
                         const SizedBox(width: 6),
                         Expanded(
                           child: _resolvingAddress
-                              ? Text('Locating address…', style: TextStyle(color: Colors.grey.shade600))
+                              ? Text('Locating address…',
+                                  style: TextStyle(color: Colors.grey.shade600))
                               : Text(
                                   _address ??
                                       '${_center.latitude.toStringAsFixed(5)}, '
                                           '${_center.longitude.toStringAsFixed(5)}',
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -317,7 +337,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        style: FilledButton.styleFrom(backgroundColor: Colors.green.shade700),
+                        style: FilledButton.styleFrom(
+                            backgroundColor: Colors.green.shade700),
                         onPressed: _confirm,
                         child: const Text('Confirm this location'),
                       ),
