@@ -119,97 +119,115 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(Icons.eco, size: 64, color: Colors.green),
-                const SizedBox(height: 8),
-                const Text(
-                  'Food Delivery',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  validator: (v) => (v == null || !v.contains('@'))
-                      ? 'Enter a valid email'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _passwordCtrl,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.vertical -
+                    48,
+              ),
+              child: IntrinsicHeight(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Icon(Icons.eco, size: 64, color: Colors.green),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Food Delivery Court',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 26, fontWeight: FontWeight.w600),
                       ),
-                      onPressed: _togglePasswordVisibility,
-                    ),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      const SizedBox(height: 32),
+                      TextFormField(
+                        controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        validator: (v) => (v == null || !v.contains('@'))
+                            ? 'Enter a valid email'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _passwordCtrl,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: _togglePasswordVisibility,
+                          ),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        validator: (v) => (v == null || v.length < 6)
+                            ? 'Min 6 characters'
+                            : null,
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _forgotPassword,
+                          child: const Text('Forgot password?'),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (_error != null)
+                        Text(_error!,
+                            style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: _loading ? null : _login,
+                        child: _loading
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Log in'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () async {
+                          FocusScope.of(context).unfocus();
+                          // A real (short) delay — more reliable than
+                          // addPostFrameCallback on Flutter Web, where the
+                          // browser's own focus/blur event queue needs time to
+                          // finish before Navigator can safely start a transition.
+                          await Future.delayed(
+                              const Duration(milliseconds: 50));
+                          if (!mounted) return;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const SignupScreen()),
+                          );
+                        },
+                        child: const Text("Don't have an account? Sign up"),
+                      ),
+                    ],
                   ),
-                  validator: (v) =>
-                      (v == null || v.length < 6) ? 'Min 6 characters' : null,
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _forgotPassword,
-                    child: const Text('Forgot password?'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (_error != null)
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 8),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: _loading ? null : _login,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Log in'),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () async {
-                    FocusScope.of(context).unfocus();
-                    // A real (short) delay — more reliable than
-                    // addPostFrameCallback on Flutter Web, where the
-                    // browser's own focus/blur event queue needs time to
-                    // finish before Navigator can safely start a transition.
-                    await Future.delayed(const Duration(milliseconds: 50));
-                    if (!mounted) return;
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SignupScreen()),
-                    );
-                  },
-                  child: const Text("Don't have an account? Sign up"),
-                ),
-              ],
+              ),
             ),
           ),
         ),
