@@ -30,10 +30,12 @@ class _AllSurpriseBagsScreenState extends State<AllSurpriseBagsScreen> {
   Future<void> _loadLocation() async {
     try {
       final pos = await _locationService.getCurrentLocation();
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _lat = pos.latitude;
         _lng = pos.longitude;
       });
+      }
     } catch (_) {
       // No GPS fix — listings just show unsorted by distance.
     }

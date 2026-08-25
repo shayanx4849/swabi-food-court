@@ -24,7 +24,7 @@ class ItemFavoriteButton extends StatelessWidget {
       builder: (context, snapshot) {
         final isFavorite = snapshot.data?.contains(itemId) ?? false;
         return Material(
-          color: Colors.black.withOpacity(0.35),
+          color: Colors.black.withValues(alpha: 0.35),
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),

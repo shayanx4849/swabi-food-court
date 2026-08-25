@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'home_tab.dart';
-import 'customer_home_screen.dart';
 import 'favorites_tab.dart';
 import 'my_orders_screen.dart';
 import 'profile_tab.dart';
+import 'restaurants_search_screen.dart';
 
 /// The customer's main shell: a persistent bottom navigation bar with five
 /// destinations (Home, Browse, Favorites, Orders, Profile), matching the
@@ -30,7 +30,7 @@ class _CustomerShellScreenState extends State<CustomerShellScreen> {
   Widget build(BuildContext context) {
     final tabs = [
       HomeTab(onSeeAllTap: _goToBrowseTab),
-      const CustomerHomeScreen(), // "Browse" — full list
+      const RestaurantsSearchScreen(), // "Browse" — full list
       const FavoritesTab(),
       const MyOrdersScreen(), // "Orders"`
       const ProfileTab(),

@@ -1,3 +1,5 @@
+# Swabi Food Court
+
 # BachaoKhana
 
 A Flutter + Firebase mobile app that connects restaurants, bakeries, and marts
@@ -21,9 +23,6 @@ waste in Pakistan. This is the working codebase for the FYP proposal
 > new projects, even though usage stays free within the Spark quota. Realtime
 > Database and Cloudinary both offer generous free tiers with **no card
 > required at all**, so this codebase uses them instead.
-
-<!-- Cludinary Name and Password  -->
-<!-- dg9vz83qu  bachaokhana  -->
 
 ## 1. Prerequisites
 

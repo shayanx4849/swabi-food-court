@@ -60,7 +60,7 @@ class RestaurantMenuScreen extends StatelessWidget {
                           StarRating(
                               rating: business.averageRating.round(), size: 14),
                           const SizedBox(width: 4),
-                          Text('${business.averageRating.toStringAsFixed(1)}',
+                          Text(business.averageRating.toStringAsFixed(1),
                               style: const TextStyle(
                                   fontSize: 12, fontWeight: FontWeight.bold)),
                         ],

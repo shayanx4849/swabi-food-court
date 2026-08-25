@@ -662,7 +662,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   strokeWidth: 2, color: Colors.white),
                             )
                           : Text(
-                              soldOut ? 'Sold out' : 'Reserve this bag',
+                              soldOut ? 'Sold out' : 'Reserve bag',
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),

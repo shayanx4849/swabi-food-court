@@ -142,7 +142,7 @@ class _FavoritesTabState extends State<FavoritesTab> {
                       StarRating(
                           rating: business.averageRating.round(), size: 12),
                       const SizedBox(width: 3),
-                      Text('${business.averageRating.toStringAsFixed(1)}',
+                      Text(business.averageRating.toStringAsFixed(1),
                           style: const TextStyle(fontSize: 12)),
                     ],
                   ],

@@ -68,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             Icon(Icons.eco, size: 72, color: Colors.green),
             SizedBox(height: 16),
-            Text('BachaoKhana',
+            Text('Swabi Food Court',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
             SizedBox(height: 24),
             CircularProgressIndicator(),

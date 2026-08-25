@@ -109,6 +109,7 @@ class _MenuItemDetailScreenState extends State<MenuItemDetailScreen> {
       // above for display, but createMenuOrder() (matching the surplus-order
       // pattern) creates a single order record per tap — placing N separate
       // single-item orders keeps the existing order/QR model unchanged.
+      // ignore: prefer_typing_uninitialized_variables
       var lastOrder;
       for (var i = 0; i < _quantity; i++) {
         lastOrder = await _databaseService.createMenuOrder(

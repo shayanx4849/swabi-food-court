@@ -305,7 +305,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.12), blurRadius: 14),
+                        color: Colors.black.withValues(alpha: 0.12), blurRadius: 14),
                   ],
                 ),
                 child: Column(
