@@ -5,7 +5,7 @@
 A Flutter + Firebase mobile app that connects restaurants, bakeries, and marts
 with customers to sell surplus/leftover food at a discount — reducing food
 waste in Pakistan. This is the working codebase for the FYP proposal
-("BachaoKhana: A Flutter-Based Mobile Application for Rescuing Surplus Food").
+("SwabiFoodCourt: A Flutter-Based Mobile Application for Rescuing Surplus Food").
 
 ## Tech Stack (No Credit/Debit Card Required)
 
@@ -49,16 +49,16 @@ up like this:
 
 ```bash
 # 1. Create a fresh Flutter project shell
-flutter create bachaokhana
-cd bachaokhana
+flutter create SwabiFoodCourt
+cd SwabiFoodCourt
 
 # 2. Delete the default lib/ and pubspec.yaml Flutter generated
 rm -rf lib
 rm pubspec.yaml
 
 # 3. Copy in this project's lib/ folder and pubspec.yaml
-cp -r /path/to/downloaded/bachaokhana_app/lib .
-cp /path/to/downloaded/bachaokhana_app/pubspec.yaml .
+cp -r /path/to/downloaded/SwabiFoodCourt_app/lib .
+cp /path/to/downloaded/SwabiFoodCourt_app/pubspec.yaml .
 
 # 4. Install dependencies
 flutter pub get
@@ -69,7 +69,7 @@ flutter pub get
 ## 3. Set Up Firebase (Auth + Realtime Database — No Card Needed)
 
 1. Go to https://console.firebase.google.com → **Add project** → name it
-   e.g. `bachaokhana-app`.
+   e.g. `SwabiFoodCourt-app`.
 2. Install the Firebase CLI and the FlutterFire CLI:
 
    ```bash
@@ -173,7 +173,7 @@ Unlike Firestore's collections, Realtime Database stores everything as one
 big JSON tree. The app organizes it like this automatically:
 
 ```
-bachaokhana-app-default-rtdb
+SwabiFoodCourt-app-default-rtdb
  ├── users
  │    └── {uid}: { uid, email, name, role, phone }
  │
